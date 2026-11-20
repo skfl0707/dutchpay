@@ -228,6 +228,87 @@
     });
   }
 
+  // ----- 정산 기록 (저장 / 불러오기 / 삭제) -----
+  const HKEY = 'dutchpay-history-v1';
+  const MAX_HISTORY = 30;
+  let history = loadHistory();
+
+  function loadHistory() {
+    try {
+      const h = JSON.parse(localStorage.getItem(HKEY));
+      if (Array.isArray(h)) return h.filter((r) => r && Array.isArray(r.people) && Array.isArray(r.expenses));
+    } catch (e) {}
+    return [];
+  }
+  function saveHistory() {
+    try { localStorage.setItem(HKEY, JSON.stringify(history)); return true; } catch (e) { return false; }
+  }
+  const dateLabel = (ms) => new Date(ms).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+
+  $('saveForm').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    if (!state.expenses.length) return toast('저장할 지출이 없어요. 먼저 지출을 추가해 주세요');
+    if (history.length >= MAX_HISTORY) return toast('기록은 ' + MAX_HISTORY + '개까지 저장할 수 있어요. 오래된 기록을 삭제해 주세요');
+    const now = Date.now();
+    const name = $('saveName').value.trim() || dateLabel(now) + ' 정산';
+    history.unshift({
+      id: now, name, savedAt: now,
+      people: state.people.slice(),
+      expenses: state.expenses.map((e) => ({ ...e, shares: e.shares.slice() })),
+    });
+    if (!saveHistory()) { history.shift(); return toast('저장하지 못했어요. 브라우저 저장 공간을 확인해 주세요'); }
+    $('saveName').value = '';
+    renderHistory();
+    toast('"' + name + '" 기록을 저장했어요');
+  });
+
+  function loadRecord(r) {
+    const hasData = state.people.length || state.expenses.length;
+    if (hasData && !confirm('지금 입력한 내용이 사라져요. "' + r.name + '" 기록을 불러올까요?\n(필요하면 먼저 저장해 두세요)')) return;
+    state = {
+      people: r.people.slice(),
+      expenses: r.expenses.map((e) => ({ ...e, shares: e.shares.slice() })),
+    };
+    seenPeople = new Set(state.people);
+    seenExp = new Set(state.expenses.map((e) => e.id));
+    $('expShares').replaceChildren(); // 나눌 사람 선택을 처음 상태(전원)로
+    update();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast('"' + r.name + '" 기록을 불러왔어요');
+  }
+
+  function deleteRecord(r) {
+    if (!confirm('"' + r.name + '" 기록을 삭제할까요?')) return;
+    history = history.filter((x) => x.id !== r.id);
+    saveHistory();
+    renderHistory();
+    toast('기록을 삭제했어요');
+  }
+
+  function renderHistory() {
+    const ul = $('history');
+    ul.replaceChildren();
+    history.forEach((r) => {
+      const li = el('li', 'item');
+      const info = el('div', 'info');
+      const total = settle(r.people, r.expenses).total;
+      info.append(el('strong', '', r.name), el('small', '', dateLabel(r.savedAt) + ' · ' + r.people.length + '명 · 총 ' + won(total)));
+      const btns = el('div', 'btns');
+      const open = el('button', 'mini', '불러오기');
+      open.type = 'button';
+      open.setAttribute('aria-label', r.name + ' 불러오기');
+      open.onclick = () => loadRecord(r);
+      const del = el('button', 'x', '×');
+      del.type = 'button';
+      del.setAttribute('aria-label', r.name + ' 삭제');
+      del.onclick = () => deleteRecord(r);
+      btns.append(open, del);
+      li.append(info, btns);
+      ul.append(li);
+    });
+    $('historyEmpty').hidden = history.length > 0;
+  }
+
   function update() { save(); render(); }
 
   $('reset').addEventListener('click', () => {
@@ -239,6 +320,7 @@
   });
 
   render();
+  renderHistory();
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

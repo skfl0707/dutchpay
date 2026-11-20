@@ -189,6 +189,16 @@ button:focus-visible, .check:focus-within { outline: 3px solid rgba(47, 91, 255,
 .t:nth-child(3) { animation-delay: .12s; }
 .t:nth-child(n+4) { animation-delay: .18s; }
 
+/* 저장한 정산 */
+#saveForm + .list { margin-top: 14px; }
+.card .list .item .btns { display: flex; align-items: center; gap: 2px; flex: none; }
+.mini {
+  min-height: 40px; padding: 0 14px; border: 0; border-radius: 12px;
+  background: var(--blue-soft); color: var(--blue); font-size: .92rem; font-weight: 700; cursor: pointer;
+}
+.mini:hover { background: #DAE4FF; }
+.item .info strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .toast {
   position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom));
   transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
