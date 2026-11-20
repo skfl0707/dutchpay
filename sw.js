@@ -1,5 +1,6 @@
-// 단순 캐시 우선 서비스 워커. 파일을 수정해 배포할 때마다 VERSION을 올리세요.
-const VERSION = 'v2';
+// 네트워크 우선 서비스 워커: 온라인이면 항상 최신 파일, 오프라인이면 저장된 파일 사용.
+// 배포할 때마다 VERSION을 올려 주세요.
+const VERSION = 'v3';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'settle.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -16,5 +17,13 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
-  e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request)));
+  e.respondWith(
+    fetch(e.request, { cache: 'no-cache' })
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(VERSION).then((c) => c.put(e.request, copy));
+        return res;
+      })
+      .catch(() => caches.match(e.request))
+  );
 });
