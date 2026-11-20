@@ -14,17 +14,45 @@
 <body>
   <header class="top">
     <h1>더치페이 정산기</h1>
+    <button id="reset" class="link" type="button">처음부터</button>
   </header>
 
   <main class="wrap">
     <section class="card">
-      <p class="badge">준비 중</p>
-      <h2>곧 만나요!</h2>
-      <p>모임 비용을 누가 누구에게 얼마 보내면 되는지,<br>가장 적은 송금 횟수로 계산해 드려요.</p>
-      <p class="small" id="status">접속 확인 중…</p>
+      <h2><span class="step">1</span> 누구와 함께했나요?</h2>
+      <form id="personForm" class="row">
+        <input id="personName" type="text" placeholder="이름 입력" maxlength="10" autocomplete="off" enterkeyhint="done">
+        <button type="submit" class="btn">추가</button>
+      </form>
+      <ul id="people" class="chips"></ul>
+      <p id="peopleHint" class="hint">2명 이상 추가해 주세요.</p>
+    </section>
+
+    <section class="card" id="expenseCard">
+      <h2><span class="step">2</span> 누가 얼마를 냈나요?</h2>
+      <form id="expenseForm">
+        <label>내용 <input id="expTitle" type="text" placeholder="예: 저녁 식사" maxlength="20" autocomplete="off"></label>
+        <label>결제한 사람 <select id="expPayer"></select></label>
+        <label>금액 (원) <input id="expAmount" type="text" inputmode="numeric" placeholder="0" autocomplete="off"></label>
+        <fieldset>
+          <legend>함께 나눌 사람</legend>
+          <div id="expShares" class="checks"></div>
+        </fieldset>
+        <button type="submit" class="btn big">지출 추가</button>
+      </form>
+      <ul id="expenses" class="list"></ul>
+    </section>
+
+    <section class="card result" id="resultCard" hidden>
+      <h2><span class="step">3</span> 정산 결과</h2>
+      <p id="total" class="hint"></p>
+      <ul id="transfers" class="list"></ul>
     </section>
   </main>
 
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="settle.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
