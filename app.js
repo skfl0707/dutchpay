@@ -16,6 +16,11 @@
     return { people: [], expenses: [] };
   }
   function save() {
+    // 약속과 연결된 정산이면 그 약속에도 함께 저장
+    if (state.planId && window.CalStore) {
+      if (CalStore.get(state.planId)) CalStore.setSettlement(state.planId, { people: state.people, expenses: state.expenses });
+      else delete state.planId; // 연결된 약속이 삭제됨
+    }
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
   }
   function toast(msg) {
@@ -95,7 +100,23 @@
   }
 
   // ----- 화면 갱신 -----
+  function renderPlan() {
+    const a = state.planId && window.CalStore ? CalStore.get(state.planId) : null;
+    if (state.planId && !a) delete state.planId;
+    $('planBanner').hidden = !a;
+    if (a) {
+      $('planTitle').textContent = a.title + ' 정산 중';
+      $('planSub').textContent = CalStore.labelDate(a.date) + (a.place ? ' · ' + a.place : '') + ' · 입력하면 약속에 자동 저장돼요';
+    }
+  }
+  $('planUnlink').addEventListener('click', () => {
+    delete state.planId;
+    update();
+    toast('약속과 연결을 해제했어요');
+  });
+
   function render() {
+    renderPlan();
     const names = state.people;
 
     // 참가자 칩
@@ -321,6 +342,32 @@
 
   render();
   renderHistory();
+
+  // 캘린더·홈 화면에서 사용하는 연결 지점
+  window.Dutch = {
+    refresh() { render(); renderHistory(); },
+    // 약속에서 정산 시작: 그 약속의 참가자·지출을 불러옴 (이미 정산한 적이 있으면 이어서)
+    startForPlan(id) {
+      const a = CalStore.get(id);
+      if (!a) return false;
+      const hasData = state.people.length || state.expenses.length;
+      if (hasData && state.planId !== id && !confirm('지금 입력한 정산 내용이 사라져요. "' + a.title + '" 약속의 정산을 시작할까요?\n(필요하면 먼저 "저장한 정산"에 저장해 두세요)')) return false;
+      const s = a.settlement;
+      state = s
+        ? { people: s.people.slice(), expenses: s.expenses.map((e) => ({ ...e, shares: e.shares.slice() })) }
+        : { people: a.people.slice(), expenses: [] };
+      state.planId = id;
+      seenPeople = new Set(state.people);
+      seenExp = new Set(state.expenses.map((e) => e.id));
+      $('expShares').replaceChildren();
+      update();
+      return true;
+    },
+    summary() {
+      const r = settle(state.people, state.expenses);
+      return { people: state.people.length, expenses: state.expenses.length, total: r.total, transfers: r.transfers.length };
+    },
+  };
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

@@ -1,7 +1,7 @@
 {
-  "name": "더치페이 정산기",
-  "short_name": "더치페이",
-  "description": "모임 비용을 가장 적은 송금 횟수로 정산해 주는 앱",
+  "name": "약속 이후",
+  "short_name": "약속 이후",
+  "description": "친구와의 약속을 잡고, 만난 뒤 모임 비용까지 정산하는 앱",
   "lang": "ko",
   "start_url": "./",
   "scope": "./",
