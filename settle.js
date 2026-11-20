@@ -19,10 +19,11 @@
       total += amount;
       balance[e.payer] += amount;
       const base = Math.floor(amount / shares.length);
-      let rest = amount - base * shares.length; // 1원 단위 나머지는 앞사람부터 1원씩 더 부담
+      const rest = amount - base * shares.length;
+      // 1원 단위 나머지는 결제한 사람이 부담 (결제자가 나눌 사람에 없으면 첫 번째 사람)
+      const absorber = shares.includes(e.payer) ? e.payer : shares[0];
       shares.forEach((p) => {
-        balance[p] -= base + (rest > 0 ? 1 : 0);
-        if (rest > 0) rest--;
+        balance[p] -= base + (p === absorber ? rest : 0);
       });
     });
 
