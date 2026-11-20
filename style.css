@@ -165,6 +165,16 @@ button:focus-visible, .check:focus-within { outline: 3px solid rgba(47, 91, 255,
   font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
 }
 .amt small { font-size: 1.05rem; font-weight: 700; margin-left: 2px; }
+.actions { display: flex; gap: 8px; margin-top: 8px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.12); }
+.abtn {
+  flex: 1; min-height: 52px; border-radius: 14px; font-size: 1rem; font-weight: 700; cursor: pointer;
+  border: 1.5px solid rgba(255,255,255,.28); background: transparent; color: #fff;
+  transition: transform .1s, background .15s;
+}
+.abtn:hover { background: rgba(255,255,255,.08); }
+.abtn:active { transform: scale(.97); }
+.abtn.primary { background: var(--mint); border-color: var(--mint); color: #0B2A22; }
+.abtn.primary:hover { background: #7BEBC2; }
 .rempty { margin: 4px 0 6px; color: #A9B6D8; font-size: .95rem; }
 .allset { text-align: center; padding: 18px 0 8px; }
 .allset strong { display: block; font-size: 1.3rem; color: var(--mint); }

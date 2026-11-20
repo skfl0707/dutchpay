@@ -71,6 +71,23 @@
     return { balances: balance, transfers, total };
   }
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = { settle };
-  else root.settle = settle;
+  // 메신저로 보낼 정산 결과 문구
+  function formatResult(people, expenses, result) {
+    const won = (n) => n.toLocaleString('ko-KR') + '원';
+    const lines = ['[더치페이 정산 결과]', '총 ' + won(result.total) + ' / 참가자 ' + people.length + '명', ''];
+    if (result.transfers.length) {
+      lines.push('보낼 돈');
+      result.transfers.forEach((t) => lines.push(t.from + ' → ' + t.to + '  ' + won(t.amount)));
+    } else {
+      lines.push('주고받을 돈이 없어요.');
+    }
+    if (expenses.length) {
+      lines.push('', '지출 내역');
+      expenses.forEach((e) => lines.push('- ' + e.title + ' ' + won(e.amount) + ' (' + e.payer + ' 결제)'));
+    }
+    return lines.join('\n');
+  }
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = { settle, formatResult };
+  else { root.settle = settle; root.formatResult = formatResult; }
 })(typeof self !== 'undefined' ? self : this);

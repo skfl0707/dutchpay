@@ -186,6 +186,48 @@
     });
   }
 
+  // ----- 결과 복사 / 공유 -----
+  function resultText() {
+    return formatResult(state.people, state.expenses, settle(state.people, state.expenses));
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      // 구형 브라우저용 대체 방법
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;font-size:16px';
+      document.body.append(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (err) {}
+      ta.remove();
+      return ok;
+    }
+  }
+
+  $('copyBtn').addEventListener('click', async () => {
+    if (!state.expenses.length) return toast('먼저 지출을 추가해 주세요');
+    toast((await copyText(resultText())) ? '결과를 복사했어요' : '복사하지 못했어요. 화면을 길게 눌러 직접 복사해 주세요');
+  });
+
+  if (navigator.share) {
+    $('shareBtn').hidden = false;
+    $('shareBtn').addEventListener('click', async () => {
+      if (!state.expenses.length) return toast('먼저 지출을 추가해 주세요');
+      try {
+        await navigator.share({ title: '더치페이 정산 결과', text: resultText() });
+      } catch (e) {
+        if (e && e.name === 'AbortError') return; // 사용자가 직접 닫음
+        toast((await copyText(resultText())) ? '공유하지 못해 결과를 복사했어요' : '공유하지 못했어요');
+      }
+    });
+  }
+
   function update() { save(); render(); }
 
   $('reset').addEventListener('click', () => {
