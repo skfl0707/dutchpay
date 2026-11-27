@@ -252,6 +252,15 @@ textarea {
 }
 input[type=file] { margin-top: 6px; width: 100%; font-size: .9rem; }
 
+/* 송금이 모두 끝난 결과 */
+.donebox { display: flex; align-items: center; gap: 10px; padding: 14px 0 4px; }
+.donebox strong { flex: 1; font-size: 1.15rem; color: var(--mint); }
+.donecheck {
+  width: 30px; height: 30px; border-radius: 50%; background: var(--mint); color: #0B2A22;
+  display: inline-flex; align-items: center; justify-content: center; font-weight: 800;
+}
+.donebox .tbtn { flex: none; padding: 0 16px; }
+
 /* 송금 체크 / 요청 문구 버튼 */
 .tact { display: flex; gap: 8px; }
 .tbtn {

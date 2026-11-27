@@ -5,6 +5,7 @@
   let seenPeople = new Set(state.people); // 새로 추가된 항목만 움직이게 하려고 기억
   let seenExp = new Set(state.expenses.map((e) => e.id));
   let animate = true;
+  let expandDone = false; // 송금이 모두 끝난 뒤 자세히 보기를 눌렀는지
 
   const $ = (id) => document.getElementById(id);
   const won = (n) => n.toLocaleString('ko-KR') + '원';
@@ -207,6 +208,15 @@
         if (left < r.transfers.length) total.append(document.createTextNode(' (' + (r.transfers.length - left) + '번 완료)'));
       }
     }
+    // 송금이 모두 끝나면 결과 목록을 접어서 "정산 완료"만 보여 줌 (자세히 보기로 다시 펼침)
+    const allDone = r.transfers.length > 0 && left === 0;
+    if (!allDone) expandDone = false;
+    const folded = allDone && !expandDone;
+    $('doneBox').hidden = !allDone;
+    $('doneToggle').textContent = expandDone ? '접기' : '자세히 보기';
+    $('doneToggle').setAttribute('aria-expanded', expandDone ? 'true' : 'false');
+    $('transfers').hidden = folded;
+    $('actions').hidden = folded;
     const still = !animate; // 체크를 눌렀을 때는 목록이 다시 움직이지 않게
     animate = true;
     r.transfers.forEach((t) => {
@@ -239,6 +249,12 @@
       tl.append(li);
     });
   }
+
+  $('doneToggle').addEventListener('click', () => {
+    expandDone = !expandDone;
+    animate = false;
+    render();
+  });
 
   // 약속과 연결된 정산이면 약속 이름을 문구에 사용
   function planTitle() {

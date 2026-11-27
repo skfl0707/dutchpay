@@ -117,8 +117,13 @@
         <h2 id="h3"><span class="step">3</span>정산 결과</h2>
         <div id="resultBody">
           <p id="total" class="sum"></p>
+          <div id="doneBox" class="donebox" hidden>
+            <span class="donecheck" aria-hidden="true">✓</span>
+            <strong>정산 완료</strong>
+            <button id="doneToggle" class="tbtn" type="button" aria-expanded="false">자세히 보기</button>
+          </div>
           <ul id="transfers" class="tlist"></ul>
-          <div class="actions">
+          <div class="actions" id="actions">
             <button id="copyBtn" class="abtn primary" type="button">결과 복사</button>
             <button id="imgBtn" class="abtn" type="button">이미지 저장</button>
             <button id="imgCopyBtn" class="abtn" type="button">이미지 복사</button>
