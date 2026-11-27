@@ -87,6 +87,7 @@
     };
     const s = cleanSettlement(raw.settlement);
     if (s) a.settlement = s;
+    if (raw.sample === true) a.sample = true; // 처음 체험용 예시 데이터
     if (raw.skipSettle === true) a.skipSettle = true; // "정산 없음"으로 표시한 약속
     return a;
   }
@@ -192,6 +193,48 @@
     return out;
   }
 
+  // ----- 자주 만나는 친구 (정산할 때 눌러서 추가) -----
+  const FR_KEY = 'dutchpay-friends-v1';
+  function cleanFriends(arr) {
+    if (!Array.isArray(arr)) return [];
+    const out = [];
+    arr.forEach((p) => {
+      const n = cleanText(p, 10);
+      if (n && !out.includes(n) && out.length < 30) out.push(n);
+    });
+    return out;
+  }
+  function friends() { return cleanFriends(readJson(FR_KEY)); }
+  function saveFriends(list) {
+    const c = cleanFriends(list);
+    try { root.localStorage.setItem(FR_KEY, JSON.stringify(c)); return c; } catch (e) { return null; }
+  }
+  function addFriends(names) { const cur = friends(); return saveFriends(cur.concat(cleanFriends(names).filter((n) => !cur.includes(n)))); }
+  function removeFriend(name) { return saveFriends(friends().filter((n) => n !== name)); }
+
+  // ----- 처음 체험용 예시 데이터 -----
+  function shiftDay(n) { const d = new Date(); d.setDate(d.getDate() + n); return fmt(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function hasSample() { return items.some((x) => x.sample); }
+  function addSample() {
+    const ppl = ['나', '민수', '지연', '하늘'];
+    const past = add({ title: '[예시] 동창 모임', date: shiftDay(-2), time: '19:00', place: '강남역 2번 출구', people: ppl,
+      memo: '예시 데이터예요. 마음껏 눌러 보고, 다 해 봤으면 홈에서 지울 수 있어요.', sample: true });
+    if (!past) return false;
+    setSettlement(past.id, { people: ppl, paid: {}, expenses: [
+      { id: 1, title: '저녁 식사', payer: '나', amount: 100000, shares: ppl },
+      { id: 2, title: '카페', payer: '민수', amount: 20000, shares: ['민수', '지연', '하늘'] },
+    ] });
+    add({ title: '[예시] 주말 소풍', date: shiftDay(3), place: '한강 공원', people: ppl, sample: true,
+      items: [{ t: '돗자리', d: true }, { t: '도시락', d: false }, { t: '보조배터리', d: false }] });
+    return true;
+  }
+  function removeSamples() {
+    const n = items.filter((x) => x.sample).length;
+    items = items.filter((x) => !x.sample);
+    persist();
+    return n;
+  }
+
   // ----- 백업 / 복원 (파일 또는 글자). 읽을 때는 반드시 정리 함수로 검증 -----
   const CUR_KEY = 'dutchpay-v1';
   const HIS_KEY = 'dutchpay-history-v1';
@@ -212,7 +255,7 @@
   function buildBackup() {
     return JSON.stringify({
       app: 'yaksok-ihu', v: 1, savedAt: Date.now(),
-      plans: items, current: readJson(CUR_KEY), history: readJson(HIS_KEY) || [],
+      plans: items, current: readJson(CUR_KEY), history: readJson(HIS_KEY) || [], friends: friends(),
     });
   }
   // 글자 → { ok, plans, current, history } 또는 { ok:false, error }
@@ -228,17 +271,18 @@
       const cs = cleanSettlement(c) || { people: [], expenses: [], paid: {} };
       const current = { people: cs.people, expenses: cs.expenses, paid: cs.paid };
       if (Number.isFinite(c.planId) && plans.some((a) => a.id === c.planId)) current.planId = c.planId;
-      return { ok: true, plans, current, history: cleanHistory(o.history) };
+      return { ok: true, plans, current, history: cleanHistory(o.history), friends: cleanFriends(o.friends) };
     } catch (e) { return { ok: false, error: '백업 파일을 읽지 못했어요' }; }
   }
   function applyBackup(p) {
     if (!p || !p.ok) return false;
-    const prev = [items, root.localStorage.getItem(CUR_KEY), root.localStorage.getItem(HIS_KEY)];
+    const prev = [items, root.localStorage.getItem(CUR_KEY), root.localStorage.getItem(HIS_KEY), root.localStorage.getItem(FR_KEY)];
     try {
       items = p.plans.slice();
       if (!persist()) throw new Error('save');
       root.localStorage.setItem(CUR_KEY, JSON.stringify(p.current));
       root.localStorage.setItem(HIS_KEY, JSON.stringify(p.history));
+      root.localStorage.setItem(FR_KEY, JSON.stringify(p.friends || []));
       return true;
     } catch (e) { // 저장 공간 부족 등: 원래대로 되돌림
       items = prev[0];
@@ -246,6 +290,7 @@
         persist();
         if (prev[1] !== null) root.localStorage.setItem(CUR_KEY, prev[1]);
         if (prev[2] !== null) root.localStorage.setItem(HIS_KEY, prev[2]);
+        if (prev[3] !== null) root.localStorage.setItem(FR_KEY, prev[3]);
       } catch (e2) {}
       return false;
     }
@@ -268,6 +313,7 @@
   }
 
   const api = {
+    friends, addFriends, removeFriend, hasSample, addSample, removeSamples,
     parseItems, mapLinks, todos, dayDiff, buildBackup, parseBackup, applyBackup,
     fmt, todayYmd, validYmd, labelDate, daysUntil,
     list, get, byDate, upcoming, add, update, remove, setSettlement,

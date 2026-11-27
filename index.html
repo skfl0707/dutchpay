@@ -41,6 +41,11 @@
     <!-- 홈 -->
     <div id="view-home">
       <section class="hero" id="nextCard" aria-live="polite"></section>
+      <section class="card sample" id="sampleCard" hidden aria-live="polite">
+        <h2 id="sampleH"></h2>
+        <p id="sampleP" class="hint tight"></p>
+        <button id="sampleBtn" class="btn big" type="button"></button>
+      </section>
       <div class="tiles">
         <a class="tile" href="#/calendar">
           <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="7" width="24" height="21" rx="5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M4 14h24M10 4v6M22 4v6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="20" r="1.8" fill="currentColor"/><circle cx="20" cy="20" r="1.8" fill="currentColor"/></svg>
@@ -94,6 +99,11 @@
           <button type="submit" class="btn">추가</button>
         </form>
         <ul id="people" class="chips"></ul>
+        <div id="friendBox" class="friends" hidden>
+          <p class="friends-h">자주 만나는 친구 <small>눌러서 추가</small></p>
+          <ul id="friendList" class="chips"></ul>
+        </div>
+        <button id="friendSave" class="link small" type="button" hidden>지금 참가자를 친구 목록에 저장</button>
         <p id="peopleHint" class="hint">함께한 사람을 2명 이상 추가하면 다음 단계가 열려요.</p>
       </section>
 
@@ -107,7 +117,8 @@
             <legend>함께 나눌 사람</legend>
             <div id="expShares" class="checks"></div>
           </fieldset>
-          <button type="submit" class="btn big">지출 추가</button>
+          <button type="submit" id="expSubmit" class="btn big">지출 추가</button>
+          <button type="button" id="expCancel" class="link center" hidden>수정 취소</button>
         </form>
         <ul id="expenses" class="list"></ul>
         <p id="expEmpty" class="empty" hidden>아직 입력한 지출이 없어요. 위에서 첫 지출을 추가해 보세요.</p>

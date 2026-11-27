@@ -432,3 +432,20 @@ input[type=date]:focus, input[type=time]:focus { outline: none; border-color: va
 .theme-btn .sun-i { display: none; }
 :root[data-theme="dark"] .theme-btn .sun-i { display: block; }
 :root[data-theme="dark"] .theme-btn .moon-i { display: none; }
+
+/* 친구 목록 / 지출 수정 / 예시 */
+.friends { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.friends-h { margin: 0 0 8px; font-size: .88rem; font-weight: 700; color: var(--muted); }
+.friends-h small { font-weight: 500; }
+.friends .chips { margin: 0; }
+.chip.friend { background: var(--blue-soft); padding-right: 2px; }
+.chip.friend.added { opacity: .55; }
+.fbtn { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 4px 0 0; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.chip.friend .x { width: 30px; height: 30px; font-size: 1.05rem; }
+#friendSave { margin: 10px 0 0; text-align: left; color: var(--blue); font-weight: 700; }
+#expenseForm.editing { background: var(--blue-soft); border-radius: 16px; padding: 12px; margin: -12px -12px 12px; }
+.item.editing { background: var(--blue-soft); border-radius: 12px; }
+.item .btns { display: flex; align-items: center; gap: 4px; flex: none; }
+.sample { border: 2px dashed var(--blue); }
+.sample h2 { margin-bottom: 6px; }
+.sample .hint { margin: 0 0 12px; }

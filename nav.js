@@ -30,8 +30,41 @@
     $('tileCal').textContent = next.length ? '다가오는 약속 ' + next.length + '개' : '약속 잡고 친구에게 공유';
     const d = window.Dutch.summary();
     $('tileDutch').textContent = d.expenses ? '정산 중 · 총 ' + won(d.total) : '모임 비용 나누기';
+    renderSample();
     renderTodos();
   }
+
+  // ----- 처음 체험용 예시 -----
+  function renderSample() {
+    const card = $('sampleCard');
+    const d = window.Dutch.summary();
+    if (S.hasSample()) {
+      $('sampleH').textContent = '예시로 둘러보는 중이에요';
+      $('sampleP').textContent = '[예시] 약속과 정산이 들어 있어요. 다 둘러봤으면 지워 주세요. 내가 만든 약속은 지워지지 않아요.';
+      $('sampleBtn').textContent = '예시 지우기';
+      $('sampleBtn').dataset.mode = 'remove';
+      card.hidden = false;
+    } else if (!S.list().length && !d.expenses) {
+      $('sampleH').textContent = '처음이세요?';
+      $('sampleP').textContent = '예시 약속과 정산을 넣어 두고 기능을 눌러 볼 수 있어요. 언제든 지울 수 있어요.';
+      $('sampleBtn').textContent = '예시로 체험해 보기';
+      $('sampleBtn').dataset.mode = 'add';
+      card.hidden = false;
+    } else card.hidden = true;
+  }
+  $('sampleBtn').addEventListener('click', () => {
+    if ($('sampleBtn').dataset.mode === 'add') {
+      if (!S.addSample()) return toast('예시를 만들지 못했어요. 저장 공간을 확인해 주세요');
+      renderHome();
+      toast('예시를 넣었어요. 아래 해야 할 일에서 정산을 이어 해 보세요');
+    } else {
+      if (!confirm('예시 약속과 정산을 지울까요? 내가 만든 약속은 그대로예요.')) return;
+      window.Dutch.clearIfLinked(S.list().filter((x) => x.sample).map((x) => x.id));
+      S.removeSamples();
+      renderHome();
+      toast('예시를 지웠어요');
+    }
+  });
 
   // ----- 해야 할 일 / 다가오는 약속 -----
   const when = (a) => S.labelDate(a.date) + (a.time ? ' ' + a.time : '');

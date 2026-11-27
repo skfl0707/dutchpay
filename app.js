@@ -5,6 +5,7 @@
   let seenPeople = new Set(state.people); // 새로 추가된 항목만 움직이게 하려고 기억
   let seenExp = new Set(state.expenses.map((e) => e.id));
   let animate = true;
+  let editId = null; // 수정 중인 지출 id
   let expandDone = false; // 송금이 모두 끝난 뒤 자세히 보기를 눌렀는지
 
   const $ = (id) => document.getElementById(id);
@@ -47,6 +48,45 @@
     return a;
   }
 
+  // ----- 자주 만나는 친구 -----
+  function addPerson(name) {
+    if (state.people.includes(name)) return toast('이미 추가된 이름이에요');
+    if (state.people.length >= 20) return toast('참가자는 20명까지 추가할 수 있어요');
+    state.people.push(name);
+    update();
+  }
+  function renderFriends() {
+    const fr = window.CalStore ? CalStore.friends() : [];
+    const ul = $('friendList');
+    ul.replaceChildren();
+    fr.forEach((n) => {
+      const added = state.people.includes(n);
+      const li = el('li', 'chip friend' + (added ? ' added' : ''));
+      const b = el('button', 'fbtn');
+      b.type = 'button';
+      b.append(avatar(n, true), el('span', '', n + (added ? ' ✓' : '')));
+      b.setAttribute('aria-label', n + (added ? ' (이미 추가됨)' : ' 추가'));
+      b.onclick = () => addPerson(n);
+      const x = el('button', 'x', '×');
+      x.type = 'button';
+      x.setAttribute('aria-label', n + ' 친구 목록에서 삭제');
+      x.onclick = () => {
+        if (!confirm('"' + n + '"을(를) 친구 목록에서 지울까요?\n(이미 추가된 참가자는 그대로예요)')) return;
+        CalStore.removeFriend(n);
+        renderFriends();
+      };
+      li.append(b, x);
+      ul.append(li);
+    });
+    $('friendBox').hidden = fr.length === 0;
+    $('friendSave').hidden = !state.people.some((p) => !fr.includes(p));
+  }
+  $('friendSave').addEventListener('click', () => {
+    if (!CalStore.addFriends(state.people)) return toast('저장하지 못했어요. 저장 공간을 확인해 주세요');
+    renderFriends();
+    toast('친구 목록에 저장했어요. 다음 정산에서 눌러서 추가할 수 있어요');
+  });
+
   // ----- 참가자 -----
   $('personForm').addEventListener('submit', (ev) => {
     ev.preventDefault();
@@ -85,9 +125,18 @@
     if (state.people.length < 2) return toast('먼저 2명 이상 추가해 주세요');
     if (!amount) return toast('금액을 입력해 주세요');
     if (!shares.length) return toast('함께 나눌 사람을 1명 이상 선택해 주세요');
+    const typed = $('expTitle').value.trim();
+    const idx = editId ? state.expenses.findIndex((e) => e.id === editId) : -1;
+    if (idx >= 0) {
+      const old = state.expenses[idx];
+      state.expenses[idx] = { ...old, title: typed || old.title, payer, amount, shares };
+      endEdit();
+      update();
+      return toast('지출을 수정했어요');
+    }
     state.expenses.push({
       id: Date.now(),
-      title: $('expTitle').value.trim() || '지출 ' + (state.expenses.length + 1),
+      title: typed || '지출 ' + (state.expenses.length + 1),
       payer, amount, shares,
     });
     $('expTitle').value = '';
@@ -96,7 +145,33 @@
     toast('지출을 추가했어요');
   });
 
+  // 지출 수정: 위 입력칸에 내용을 채워 넣고, 완료하면 같은 자리에 반영
+  function startEdit(e) {
+    editId = e.id;
+    $('expTitle').value = e.title;
+    $('expAmount').value = e.amount.toLocaleString('ko-KR');
+    $('expPayer').value = e.payer;
+    document.querySelectorAll('#expShares input').forEach((c) => { c.checked = e.shares.includes(c.value); });
+    $('expSubmit').textContent = '수정 완료';
+    $('expCancel').hidden = false;
+    $('expenseForm').classList.add('editing');
+    render();
+    $('expenseForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    toast('위 입력칸에서 고친 뒤 "수정 완료"를 눌러 주세요');
+  }
+  function endEdit() {
+    editId = null;
+    $('expTitle').value = '';
+    $('expAmount').value = '';
+    $('expSubmit').textContent = '지출 추가';
+    $('expCancel').hidden = true;
+    $('expenseForm').classList.remove('editing');
+    $('expShares').replaceChildren(); // 나눌 사람 선택을 처음 상태(전원)로
+  }
+  $('expCancel').addEventListener('click', () => { endEdit(); render(); toast('수정을 취소했어요'); });
+
   function removeExpense(id) {
+    if (editId === id) endEdit();
     state.expenses = state.expenses.filter((e) => e.id !== id);
     update();
   }
@@ -120,6 +195,7 @@
   function render() {
     renderPlan();
     const names = state.people;
+    if (editId && !state.expenses.some((e) => e.id === editId)) endEdit(); // 수정하던 지출이 사라진 경우
 
     // 참가자 칩
     const ul = $('people');
@@ -135,6 +211,7 @@
       ul.append(li);
     });
     seenPeople = new Set(names);
+    renderFriends();
     $('peopleHint').hidden = names.length >= 2;
     $('expenseCard').classList.toggle('disabled', names.length < 2);
 
@@ -163,7 +240,7 @@
     const exUl = $('expenses');
     exUl.replaceChildren();
     state.expenses.forEach((e) => {
-      const li = el('li', 'item' + (seenExp.has(e.id) ? '' : ' new'));
+      const li = el('li', 'item' + (seenExp.has(e.id) ? '' : ' new') + (editId === e.id ? ' editing' : ''));
       const info = el('div', 'info');
       info.append(el('strong', '', e.title + ' · ' + won(e.amount)));
       const who = e.shares.length === names.length ? '전원' : e.shares.join(', ');
@@ -172,7 +249,13 @@
       del.type = 'button';
       del.setAttribute('aria-label', e.title + ' 삭제');
       del.onclick = () => removeExpense(e.id);
-      li.append(info, del);
+      const edit = el('button', 'mini', '수정');
+      edit.type = 'button';
+      edit.setAttribute('aria-label', e.title + ' 수정');
+      edit.onclick = () => startEdit(e);
+      const btns = el('div', 'btns');
+      btns.append(edit, del);
+      li.append(info, btns);
       exUl.append(li);
     });
     seenExp = new Set(state.expenses.map((e) => e.id));
@@ -566,6 +649,15 @@
       $('expShares').replaceChildren();
       update();
       return true;
+    },
+    // 예시 데이터를 지울 때: 그 약속과 연결된 정산 화면도 함께 비움
+    clearIfLinked(ids) {
+      if (state.planId && ids.includes(state.planId)) {
+        state = { people: [], expenses: [], paid: {} };
+        seenPeople = new Set(); seenExp = new Set();
+        $('expShares').replaceChildren();
+        update();
+      }
     },
     summary() {
       const r = settle(state.people, state.expenses);

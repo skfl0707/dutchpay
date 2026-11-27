@@ -142,4 +142,40 @@ console.log('OK  공유 링크 (링크 길이 ' + code.length + '자)');
   delete mem['dutchpay-v1']; delete mem['dutchpay-history-v1'];
 }
 
+// 친구 목록 / 예시 데이터
+{
+  S._reset();
+  delete mem['dutchpay-friends-v1'];
+  assert.deepStrictEqual(S.friends(), []);
+  S.addFriends(['민수', '지연', '민수', ' ', '하늘']);
+  assert.deepStrictEqual(S.friends(), ['민수', '지연', '하늘'], '중복·빈 이름 제거');
+  S.addFriends(['지연', '태경']);
+  assert.deepStrictEqual(S.friends(), ['민수', '지연', '하늘', '태경']);
+  S.removeFriend('지연');
+  assert.deepStrictEqual(S.friends(), ['민수', '하늘', '태경']);
+  assert.strictEqual(S.addFriends(Array.from({ length: 50 }, (_, i) => '친구' + i)).length, 30, '30명까지');
+  // 백업에 포함
+  const text = S.buildBackup();
+  delete mem['dutchpay-friends-v1'];
+  const p = S.parseBackup(text);
+  assert.strictEqual(p.friends.length, 30);
+  assert.ok(S.applyBackup(p));
+  assert.strictEqual(S.friends().length, 30);
+  assert.deepStrictEqual(S.parseBackup(JSON.stringify({ app: 'yaksok-ihu', v: 1, friends: 'x' })).friends, []);
+  console.log('OK  친구 목록');
+
+  S._reset();
+  assert.strictEqual(S.hasSample(), false);
+  assert.ok(S.addSample());
+  assert.strictEqual(S.hasSample(), true);
+  assert.strictEqual(S.list().length, 2);
+  const td = S.todos();
+  assert.strictEqual(td.pending.length, 1, '예시 정산은 송금이 남아 있음');
+  assert.strictEqual(td.upcoming.length, 1);
+  const real = S.add({ title: '진짜 약속', date: '2026-12-20' });
+  assert.strictEqual(S.removeSamples(), 2);
+  assert.deepStrictEqual(S.list().map((x) => x.title), ['진짜 약속'], '내 약속은 남음');
+  console.log('OK  예시 데이터');
+}
+
 console.log('저장소 테스트 통과');
