@@ -90,6 +90,21 @@
     $('upH').hidden = false;
   }
 
+  // ----- 다크 모드 (처음엔 폰 설정을 따르고, 버튼을 누르면 고른 값을 기억) -----
+  function applyTheme(t, remember) {
+    document.documentElement.setAttribute('data-theme', t);
+    if (remember) { try { localStorage.setItem('dutchpay-theme', t); } catch (e) {} }
+    const m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute('content', t === 'dark' ? '#0B1020' : '#101B3B');
+    $('themeBtn').setAttribute('aria-label', t === 'dark' ? '라이트 모드로 바꾸기' : '다크 모드로 바꾸기');
+  }
+  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light', false);
+  $('themeBtn').addEventListener('click', () => {
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(next, true);
+    toast(next === 'dark' ? '다크 모드로 바꿨어요' : '라이트 모드로 바꿨어요');
+  });
+
   // ----- 백업 / 복원 -----
   function download(blob, name) {
     const url = URL.createObjectURL(blob);
