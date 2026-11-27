@@ -1,6 +1,6 @@
 // 네트워크 우선 서비스 워커: 온라인이면 항상 최신 파일, 오프라인이면 저장된 파일 사용.
 // 배포할 때마다 VERSION을 올려 주세요.
-const VERSION = 'v22';
+const VERSION = 'v23';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'settle.js', 'store.js', 'ui.js', 'cal.js', 'nav.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {

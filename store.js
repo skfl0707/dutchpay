@@ -214,6 +214,125 @@
   function addFriends(names) { const cur = friends(); return saveFriends(cur.concat(cleanFriends(names).filter((n) => !cur.includes(n)))); }
   function removeFriend(name) { return saveFriends(friends().filter((n) => n !== name)); }
 
+  // ----- 한 줄 입력("내일 저녁 7시 강남역에서 민수랑 술 약속")을 약속 칸으로 나누기 -----
+  // AI가 아니라 정해진 규칙으로 읽음. 못 읽은 칸은 비워 두고 사용자가 확인·수정함.
+  function addDays(ymd, n) {
+    const [y, m, d] = ymd.split('-').map(Number);
+    const dt = new Date(y, m - 1, d + n);
+    return fmt(dt.getFullYear(), dt.getMonth(), dt.getDate());
+  }
+  function weekdayOf(ymd) { const [y, m, d] = ymd.split('-').map(Number); return new Date(y, m - 1, d).getDay(); }
+  function mkYmd(y, m, d) { const s = fmt(y, m - 1, d); return validYmd(s) ? s : ''; } // m: 1~12
+  const WD_IDX = { 일: 0, 월: 1, 화: 2, 수: 3, 목: 4, 금: 5, 토: 6 };
+  function detectKind(t) {
+    if (/술|호프|맥주|소주|막걸리|와인|위스키|칵테일|포차|이자카야|회식|2차|뒤풀이|펍/.test(t)) return 'drink';
+    if (/카페|커피|디저트|케이크/.test(t)) return 'cafe';
+    if (/식사|밥|점심|저녁|맛집|브런치|고기|파스타|치킨|국밥|삼겹살/.test(t)) return 'meal';
+    return '';
+  }
+  const GENERIC_PEOPLE = ['친구', '가족', '동료', '다같이', '같이', '혼자', '우리', '모두', '다들'];
+
+  function parseQuick(input, today) {
+    const t0 = today || todayYmd();
+    let rest = ' ' + String(input || '').trim().slice(0, 200) + ' ';
+    const out = { date: '', time: '', place: '', people: [], kind: '', title: '' };
+    const found = { date: false, time: false, place: false, people: false };
+    // 끝의 부탁 말투 제거
+    rest = rest.replace(/\s*(해\s*줘|해\s*주세요)\s*$/, ' ');
+    rest = rest.replace(/\s*(잡아|추가해|추가|만들어|넣어|등록해|등록|예약해|예약)\s*(줘|주세요|줄래|줘요|봐)?[.!?~\s]*$/, ' ');
+    out.kind = detectKind(rest);
+
+    const take = (re) => {
+      const m = re.exec(rest);
+      if (m) rest = rest.slice(0, m.index) + ' ' + rest.slice(m.index + m[0].length);
+      return m;
+    };
+
+    // --- 날짜 ---
+    let m;
+    const mondayShift = (weekdayOf(t0) + 6) % 7;
+    if ((m = take(/(오늘|내일|모레|글피)(?:에|은|는)?(?=\s|$)/))) {
+      out.date = addDays(t0, { 오늘: 0, 내일: 1, 모레: 2, 글피: 3 }[m[1]]);
+    } else if ((m = take(/(\d{1,2})\s*(일|주)\s*(?:뒤|후)(?:에)?(?=\s|$)/))) {
+      out.date = addDays(t0, Number(m[1]) * (m[2] === '주' ? 7 : 1));
+    } else if ((m = take(/(이번\s*주|다음\s*주|담\s*주|다다음\s*주)?\s*(월|화|수|목|금|토|일)요일(?:에|은|는)?(?=\s|$)/))) {
+      const idx = WD_IDX[m[2]];
+      if (m[1]) {
+        const w = m[1].replace(/\s/g, '');
+        const base = addDays(t0, -mondayShift + (w === '이번주' ? 0 : w === '다다음주' ? 14 : 7));
+        out.date = addDays(base, (idx + 6) % 7);
+      } else {
+        out.date = addDays(t0, ((idx - weekdayOf(t0) + 7) % 7) || 7); // 오늘 이후 가장 가까운 그 요일
+      }
+    } else if ((m = take(/(다음\s*주|담\s*주)(?:에|은|는)?(?=\s|$)/))) {
+      out.date = addDays(t0, 7);
+    } else if ((m = take(/(\d{1,2})\s*월\s*(\d{1,2})\s*일(?:에|은|는)?(?=\s|$)/)) || (m = take(/(?:^|\s)(\d{1,2})\s*[\/.]\s*(\d{1,2})(?:에)?(?=\s|$)/))) {
+      const y0 = Number(t0.slice(0, 4));
+      out.date = mkYmd(y0, Number(m[1]), Number(m[2]));
+      if (out.date && out.date < t0) out.date = mkYmd(y0 + 1, Number(m[1]), Number(m[2]));
+    } else if ((m = take(/(?:^|\s)(\d{1,2})\s*일(?:에|은|는)?(?=\s|$)/))) {
+      const [y0, mo0] = t0.split('-').map(Number);
+      out.date = mkYmd(y0, mo0, Number(m[1]));
+      if (!out.date || out.date < t0) {
+        const nx = new Date(y0, mo0, 1); // 다음 달 1일
+        out.date = mkYmd(nx.getFullYear(), nx.getMonth() + 1, Number(m[1]));
+      }
+    }
+    found.date = !!out.date;
+
+    // --- 시간 ---
+    const hhmm = (h, mi, pre, rawH) => {
+      if (mi > 59 || h > 24) return '';
+      if (pre === '오후' || pre === '저녁') { if (h < 12) h += 12; }
+      else if (pre === '밤') { h = h === 12 ? 0 : h < 12 ? h + 12 : h; }
+      else if (pre === '점심') { if (h >= 1 && h <= 6) h += 12; }
+      else if (pre === '오전' || pre === '아침' || pre === '새벽') { if (h === 12) h = 0; }
+      else if (h >= 1 && h <= 8 && !/^0/.test(rawH)) h += 12; // 앞말이 없으면 1~8시는 오후로 봄
+      if (h >= 24) h = 0;
+      return String(h).padStart(2, '0') + ':' + String(mi).padStart(2, '0');
+    };
+    if ((m = take(/(오전|오후|아침|점심|저녁|밤|새벽)?\s*(\d{1,2}):(\d{2})(?:에|부터)?(?=\s|$)/))) {
+      out.time = hhmm(Number(m[2]), Number(m[3]), m[1], m[2]);
+    } else if ((m = take(/(오전|오후|아침|점심|저녁|밤|새벽)?\s*(\d{1,2})\s*시\s*(?:(반)|(\d{1,2})\s*분)?(?:에|부터)?(?=\s|$)/))) {
+      out.time = hhmm(Number(m[2]), m[3] ? 30 : Number(m[4] || 0), m[1], m[2]);
+    }
+    found.time = !!out.time;
+
+    // --- 사람 / 장소 / 제목 ---
+    const tokens = rest.split(/[\s,]+/).filter(Boolean);
+    const used = tokens.map(() => false);
+    tokens.forEach((tok, i) => {
+      const pm = /^([가-힣A-Za-z]{2,6}?)(이랑|랑|하고|와|과)$/.exec(tok);
+      if (!pm) return;
+      used[i] = true;
+      const name = pm[1];
+      if (GENERIC_PEOPLE.includes(name) || name.endsWith('들')) return;
+      if (!out.people.includes(name)) out.people.push(name);
+    });
+    let pi = tokens.findIndex((t, i) => !used[i] && /.{2,}에서$/.test(t));
+    if (pi < 0) pi = tokens.findIndex((t, i) => !used[i] && /.{2,}에$/.test(t));
+    if (pi >= 0) {
+      const parts = [tokens[pi].replace(/(에서|에)$/, '')];
+      used[pi] = true;
+      let i = pi;
+      while (i > 0 && !used[i - 1] && /^(\d+번|\d+층|출구|입구|근처|앞|뒤|옆|사거리|카페|식당|술집|호프|포차|공원|영화관|레스토랑|극장)$/.test(parts[0])) {
+        parts.unshift(tokens[i - 1]);
+        i--;
+        used[i] = true;
+      }
+      out.place = cleanText(parts.join(' '), 30);
+    }
+    found.place = !!out.place;
+    if (out.people.length) { out.people.unshift('나'); found.people = true; }
+
+    const STOP = /^(같이|함께|우리|좀|그냥|에|은|는|을|를)$/;
+    out.title = cleanText(tokens.filter((t, i) => !used[i] && !STOP.test(t)).join(' '), 30);
+    if (!out.title) out.title = out.kind === 'drink' ? '술 약속' : out.kind === 'cafe' ? '카페 모임' : out.kind === 'meal' ? '식사 약속' : '약속';
+
+    const any = found.date || found.time || found.place || found.people;
+    return { ok: any, fields: out, found, error: any ? '' : '날짜·시간·장소를 찾지 못했어요' };
+  }
+
   // ----- 처음 체험용 예시 데이터 -----
   function shiftDay(n) { const d = new Date(); d.setDate(d.getDate() + n); return fmt(d.getFullYear(), d.getMonth(), d.getDate()); }
   function hasSample() { return items.some((x) => x.sample); }
@@ -331,6 +450,7 @@
   }
 
   const api = {
+    parseQuick, detectKind,
     friends, addFriends, removeFriend, hasSample, addSample, removeSamples,
     parseItems, mapLinks, guessKind, nearbyLinks, todos, dayDiff, buildBackup, parseBackup, applyBackup,
     fmt, todayYmd, validYmd, labelDate, daysUntil,

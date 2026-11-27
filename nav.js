@@ -132,6 +132,19 @@
     if (!Mascot.isOff()) Mascot.say('happy', '다시 만나서 반가워요!');
   });
 
+  // 강아지에게 한 줄로 부탁: 읽은 내용을 캘린더의 약속 추가 화면에 채워 보여 줌 (확인 후 저장)
+  Mascot.onAsk = (text) => {
+    const r = S.parseQuick(text);
+    if (!r.ok) {
+      Mascot.say('sad', '잘 모르겠어요... 이렇게 말해 줘요: 내일 저녁 7시 강남역에서 민수랑 술', 5500);
+      return false;
+    }
+    location.hash = '#/calendar';
+    setTimeout(() => window.Cal.quickAdd(r.fields, r.found), 80);
+    Mascot.say('happy', '이렇게 잡을까요? 확인하고 저장해요!', 3800);
+    return true;
+  };
+
   // 강아지를 두 번째로 눌렀을 때 알려 줄 말 (해야 할 일이 있으면 그걸, 없으면 다음 약속)
   Mascot.hint = () => {
     const td = S.todos();

@@ -72,7 +72,7 @@ window.UI = (function () {
 <g class="fx" data-s="thumb"><text class="f1" x="12" y="26" font-size="13" fill="#FFC83D">★</text><text class="f2" x="86" y="30" font-size="11" fill="#FFC83D">★</text><text class="f3" x="46" y="9" font-size="12" fill="#FFB020">★</text></g>
 <g class="fx rain" data-s="sad"><path class="f1" d="M14 18 Q11.5 23 14 25.5 Q16.5 23 14 18 Z" fill="#7CC4FF"/><path class="f2" d="M84 14 Q81.5 19 84 21.5 Q86.5 19 84 14 Z" fill="#7CC4FF"/><path class="f3" d="M50 6 Q47.5 11 50 13.5 Q52.5 11 50 6 Z" fill="#9AD3FF"/></g>
 </svg>`;
-    let root, bubble, timer;
+    let root, bubble, ask, askInput, timer;
     let off = false;
     try { off = localStorage.getItem('dutchpay-mascot') === 'off'; } catch (e) {}
 
@@ -87,7 +87,22 @@ window.UI = (function () {
       bubble = document.createElement('div');
       bubble.className = 'mascot-bubble';
       bubble.setAttribute('aria-hidden', 'true'); // 같은 내용을 알림창(toast)이 읽어 줌
-      document.body.append(root, bubble);
+      // 강아지에게 부탁하는 입력창: "내일 저녁 7시 강남역에서 민수랑 술" 같은 글로 약속 만들기
+      ask = document.createElement('form');
+      ask.className = 'mascot-ask';
+      ask.hidden = true;
+      ask.innerHTML = '<label class="ask-l">무슨 약속을 잡을까요?<input type="text" maxlength="120" autocomplete="off" enterkeyhint="go" placeholder="예: 내일 저녁 7시 강남역에서 민수랑 술"></label>'
+        + '<div class="ask-b"><button type="submit" class="btn">부탁하기</button><button type="button" class="link ask-x">닫기</button></div>';
+      askInput = ask.querySelector('input');
+      ask.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        const text = askInput.value.trim();
+        if (!text) return;
+        if (!api.onAsk || api.onAsk(text) !== false) { askInput.value = ''; ask.hidden = true; }
+      });
+      ask.querySelector('.ask-x').addEventListener('click', () => { ask.hidden = true; });
+      document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !ask.hidden) ask.hidden = true; });
+      document.body.append(root, bubble, ask);
       root.hidden = off;
     }
     function rest() {
@@ -114,6 +129,7 @@ window.UI = (function () {
     ];
     let taps = 0, lastTap = 0, last = -1;
     function poke() {
+      if (api.onAsk && ask.hidden) ask.hidden = false; // 강아지를 누르면 부탁 입력창도 열림
       const now = Date.now();
       taps = now - lastTap < 1600 ? taps + 1 : 1;
       lastTap = now;
@@ -130,10 +146,10 @@ window.UI = (function () {
     function setOff(v) {
       off = !!v;
       try { localStorage.setItem('dutchpay-mascot', off ? 'off' : 'on'); } catch (e) {}
-      if (root) { rest(); root.hidden = off; }
+      if (root) { rest(); root.hidden = off; if (off) ask.hidden = true; }
     }
     build();
-    const api = { say, setOff, isOff: () => off, hint: null }; // hint: 화면 쪽에서 알려 줄 말을 정해 주는 함수
+    const api = { say, setOff, isOff: () => off, hint: null, onAsk: null }; // onAsk(글): 약속 만들기 요청을 받는 함수, hint: 화면 쪽에서 알려 줄 말을 정해 주는 함수
     return api;
   })();
 

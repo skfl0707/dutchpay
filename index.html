@@ -160,6 +160,15 @@
     <div id="view-cal" hidden>
       <section class="card join" id="joinCard" hidden aria-live="polite"></section>
 
+      <section class="card quick" aria-labelledby="quickH">
+        <h2 id="quickH">한 줄로 약속 만들기</h2>
+        <form id="quickForm" class="row">
+          <input id="quickText" type="text" placeholder="예: 내일 저녁 7시 강남역에서 민수랑 술" maxlength="120" autocomplete="off" enterkeyhint="go" aria-label="약속을 한 줄로 입력">
+          <button type="submit" class="btn">만들기</button>
+        </form>
+        <p class="hint tight">날짜·시간·장소·함께할 사람을 적으면 칸을 채워 드려요. 저장하기 전에 확인할 수 있어요.</p>
+      </section>
+
       <section class="card">
         <div class="cal-head">
           <button id="calPrev" class="nav" type="button" aria-label="이전 달">‹</button>
@@ -179,6 +188,7 @@
 
       <section class="card" id="formCard" hidden aria-labelledby="formTitle">
         <h2 id="formTitle">약속 추가</h2>
+        <p id="quickNote" class="quick-note" hidden></p>
         <form id="apptForm" novalidate>
           <label>약속 이름 <input id="apTitle" type="text" placeholder="예: 동창 모임" maxlength="30" autocomplete="off"></label>
           <div class="two">

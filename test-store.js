@@ -199,4 +199,65 @@ console.log('OK  공유 링크 (링크 길이 ' + code.length + '자)');
   console.log('OK  주변 검색 링크');
 }
 
+// 한 줄 입력 읽기 (오늘 = 2026-11-27 금요일)
+{
+  const T = '2026-11-27';
+  const q = (x) => S.parseQuick(x, T);
+  const f = (x) => q(x).fields;
+  let r = f('내일 저녁 7시 강남역에서 민수랑 지연이랑 술 약속 잡아줘');
+  assert.deepStrictEqual([r.date, r.time, r.place, r.kind, r.title], ['2026-11-28', '19:00', '강남역', 'drink', '술 약속']);
+  assert.deepStrictEqual(r.people, ['나', '민수', '지연']);
+  r = f('다음주 금요일 오후 3시 반 홍대입구 2번 출구에서 카페 모임');
+  assert.deepStrictEqual([r.date, r.time, r.place, r.kind, r.title], ['2026-12-04', '15:30', '홍대입구 2번 출구', 'cafe', '카페 모임']);
+  r = f('12월 5일 점심 12시 판교에서 팀 점심');
+  assert.deepStrictEqual([r.date, r.time, r.place, r.title], ['2026-12-05', '12:00', '판교', '팀 점심']);
+  r = f('모레 19:30 동창 모임');
+  assert.deepStrictEqual([r.date, r.time, r.title, r.place], ['2026-11-29', '19:30', '동창 모임', '']);
+  assert.strictEqual(f('금요일 회식').date, '2026-12-04', '오늘이 금요일이면 다음 금요일');
+  assert.strictEqual(f('토요일 소풍').date, '2026-11-28');
+  assert.strictEqual(f('이번주 일요일 소풍').date, '2026-11-29');
+  assert.strictEqual(f('다음주 월요일 회의').date, '2026-11-30');
+  assert.strictEqual(f('다다음주 수요일 회의').date, '2026-12-09');
+  assert.strictEqual(f('1월 3일 신년회').date, '2027-01-03', '지난 날짜면 내년');
+  assert.strictEqual(f('12/25 크리스마스 파티').date, '2026-12-25');
+  assert.strictEqual(f('5일 모임').date, '2026-12-05', '이미 지난 날이면 다음 달');
+  assert.strictEqual(f('30일 모임').date, '2026-11-30');
+  assert.strictEqual(f('3일 뒤 점심').date, '2026-11-30');
+  assert.strictEqual(f('2주 후 여행').date, '2026-12-11');
+  assert.strictEqual(f('2월 30일 모임').date, '', '없는 날짜는 비워 둠');
+  // 시간
+  const tm = (x) => f('내일 ' + x + ' 약속').time;
+  assert.strictEqual(tm('오후 3시'), '15:00');
+  assert.strictEqual(tm('아침 8시'), '08:00');
+  assert.strictEqual(tm('밤 12시'), '00:00');
+  assert.strictEqual(tm('밤 10시'), '22:00');
+  assert.strictEqual(tm('7시'), '19:00');
+  assert.strictEqual(tm('10시'), '10:00');
+  assert.strictEqual(tm('새벽 2시'), '02:00');
+  assert.strictEqual(tm('저녁 6시 30분'), '18:30');
+  assert.strictEqual(tm('12시'), '12:00');
+  assert.strictEqual(tm('08:00'), '08:00');
+  assert.strictEqual(tm('7:30'), '19:30');
+  assert.strictEqual(tm('25시'), '', '이상한 시간은 비워 둠');
+  // 사람
+  r = f('내일 하늘이랑 태경하고 서연과 영화');
+  assert.deepStrictEqual(r.people, ['나', '하늘', '태경', '서연']);
+  assert.deepStrictEqual(f('내일 친구들이랑 가족과 밥').people, [], '친구들/가족은 이름으로 보지 않음');
+  // 못 읽으면 실패, 날짜만 있어도 성공
+  assert.strictEqual(q('ㅁㄴㅇㄹ').ok, false);
+  assert.strictEqual(q('').ok, false);
+  assert.strictEqual(q('내일 약속').ok, true);
+  assert.strictEqual(q('강남역에서 술').fields.date, '');
+  assert.strictEqual(q('강남역에서 술').fields.place, '강남역');
+  // 아주 긴 글/이상한 글도 안전
+  assert.doesNotThrow(() => q('가'.repeat(5000)));
+  assert.ok(q('<img src=x onerror=1> 내일').fields.title.length <= 30);
+  r = f('12월 24일 저녁 7시 성수 카페에서 연인이랑');
+  assert.strictEqual(r.place, '성수 카페', '카페 같은 일반 말은 앞 단어와 붙임');
+  // 약속으로 저장 가능한 값인지
+  const a = S.add({ title: f('모레 7시 강남역에서 민수랑 술').title, ...f('모레 7시 강남역에서 민수랑 술') });
+  assert.ok(a && a.date === '2026-11-29' && a.time === '19:00' && a.kind === 'drink');
+  console.log('OK  한 줄 입력 읽기');
+}
+
 console.log('저장소 테스트 통과');

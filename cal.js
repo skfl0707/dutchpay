@@ -167,8 +167,9 @@
   }
 
   // ----- 약속 추가 / 수정 -----
-  function openForm(a) {
+  function openForm(a, quiet) {
     editId = a ? a.id : null;
+    $('quickNote').hidden = true;
     $('formTitle').textContent = a ? '약속 수정' : '약속 추가';
     $('apTitle').value = a ? a.title : '';
     $('apDate').value = a ? a.date : view.sel;
@@ -181,7 +182,7 @@
     $('formCard').hidden = false;
     $('addAppt').hidden = true;
     $('formCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setTimeout(() => $('apTitle').focus({ preventScroll: true }), 300);
+    if (!quiet) setTimeout(() => $('apTitle').focus({ preventScroll: true }), 300);
   }
   function closeForm() {
     editId = null;
@@ -189,6 +190,35 @@
     $('addAppt').hidden = false;
   }
   $('addAppt').onclick = () => openForm(null);
+
+  // ----- 한 줄 입력으로 약속 만들기: 읽은 내용을 추가 화면에 채워 보여 주고, 사용자가 확인한 뒤 저장 -----
+  function quickAdd(f, found) {
+    const date = f.date || view.sel;
+    const [y, m] = date.split('-').map(Number);
+    view.y = y; view.m = m - 1; view.sel = date;
+    closeForm();
+    renderMonth(); renderDay();
+    openForm(null, true);
+    $('apTitle').value = f.title;
+    $('apDate').value = date;
+    $('apTime').value = f.time;
+    $('apPlace').value = f.place;
+    $('apPeople').value = f.people.join(', ');
+    $('apKind').value = f.kind || '';
+    const note = $('quickNote');
+    note.textContent = '입력한 글에서 읽은 내용이에요. 맞는지 확인하고 저장해 주세요.'
+      + (found && !found.date ? ' 날짜를 못 찾아서 ' + S.labelDate(date) + '로 넣었어요.' : '');
+    note.hidden = false;
+  }
+  $('quickForm').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const text = $('quickText').value.trim();
+    if (!text) return toast('약속을 한 줄로 적어 주세요');
+    const r = S.parseQuick(text);
+    if (!r.ok) return toast('잘 읽지 못했어요. 이렇게 적어 보세요: 내일 저녁 7시 강남역에서 민수랑 술');
+    $('quickText').value = '';
+    quickAdd(r.fields, r.found);
+  });
   $('apCancel').onclick = () => { closeForm(); };
 
   $('apptForm').addEventListener('submit', (ev) => {
@@ -273,6 +303,7 @@
 
   // nav.js에서 화면이 열릴 때마다 호출. joinCode가 있으면 친구가 보낸 링크로 들어온 것
   window.Cal = {
+    quickAdd,
     render(joinCode) {
       if (joinCode) {
         const a = S.decodeShare(joinCode);
