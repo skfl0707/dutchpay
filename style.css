@@ -528,3 +528,18 @@ a.ichip.near.on { background: var(--blue-soft); border-color: var(--blue); color
   margin: 0 0 14px; padding: 10px 12px; border-radius: 12px;
   background: var(--blue-soft); color: var(--blue); font-size: .9rem; font-weight: 600; line-height: 1.5;
 }
+
+/* 강아지 머리 위 "약속을 잡을까요?" */
+.mascot-offer {
+  position: fixed; right: 4px; bottom: calc(118px + env(safe-area-inset-bottom)); z-index: 5;
+  padding: 10px 16px; border-radius: 16px; border: 2px solid var(--blue); background: var(--card); color: var(--blue);
+  font: inherit; font-size: .95rem; font-weight: 800; cursor: pointer; white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(23, 33, 58, .18); -webkit-tap-highlight-color: transparent;
+  opacity: 0; transform: translateY(8px) scale(.95); pointer-events: none; transition: opacity .2s, transform .2s;
+}
+.mascot-offer.show { opacity: 1; transform: none; pointer-events: auto; }
+.mascot-offer:active { transform: scale(.96); }
+.mascot-offer::after {
+  content: ''; position: absolute; right: 52px; bottom: -8px; width: 12px; height: 12px; background: var(--card);
+  border-right: 2px solid var(--blue); border-bottom: 2px solid var(--blue); transform: rotate(45deg);
+}

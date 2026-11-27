@@ -72,7 +72,7 @@ window.UI = (function () {
 <g class="fx" data-s="thumb"><text class="f1" x="12" y="26" font-size="13" fill="#FFC83D">★</text><text class="f2" x="86" y="30" font-size="11" fill="#FFC83D">★</text><text class="f3" x="46" y="9" font-size="12" fill="#FFB020">★</text></g>
 <g class="fx rain" data-s="sad"><path class="f1" d="M14 18 Q11.5 23 14 25.5 Q16.5 23 14 18 Z" fill="#7CC4FF"/><path class="f2" d="M84 14 Q81.5 19 84 21.5 Q86.5 19 84 14 Z" fill="#7CC4FF"/><path class="f3" d="M50 6 Q47.5 11 50 13.5 Q52.5 11 50 6 Z" fill="#9AD3FF"/></g>
 </svg>`;
-    let root, bubble, ask, askInput, timer;
+    let root, bubble, offer, ask, askInput, timer;
     let off = false;
     try { off = localStorage.getItem('dutchpay-mascot') === 'off'; } catch (e) {}
 
@@ -102,13 +102,24 @@ window.UI = (function () {
       });
       ask.querySelector('.ask-x').addEventListener('click', () => { ask.hidden = true; });
       document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !ask.hidden) ask.hidden = true; });
-      document.body.append(root, bubble, ask);
+      // 강아지 머리 위 "약속을 잡을까요?" 말풍선: 누르면 약속 입력창이 열림
+      offer = document.createElement('button');
+      offer.type = 'button';
+      offer.className = 'mascot-offer';
+      offer.textContent = '약속을 잡을까요?';
+      offer.addEventListener('click', () => {
+        rest();
+        ask.hidden = false;
+        askInput.focus();
+      });
+      document.body.append(root, bubble, offer, ask);
       root.hidden = off;
     }
     function rest() {
       root.dataset.state = 'idle';
       root.classList.remove('up');
       bubble.classList.remove('show');
+      offer.classList.remove('show');
     }
     // state: 'happy'(신남) | 'thumb'(엄지 척) | 'sad'(슬픔)
     function say(state, text, ms) {
@@ -119,7 +130,7 @@ window.UI = (function () {
       root.dataset.state = state;
       root.classList.add('up');
       bubble.textContent = text; // 항상 textContent
-      bubble.classList.add('show');
+      bubble.classList.toggle('show', !!text);
       timer = setTimeout(rest, ms || 3400);
     }
     // 눌러서 놀기: 짧게 연달아 누르면 간지러워하고, 가끔 앱 상태를 알려 줌(hint)
@@ -129,11 +140,15 @@ window.UI = (function () {
     ];
     let taps = 0, lastTap = 0, last = -1;
     function poke() {
-      if (api.onAsk && ask.hidden) ask.hidden = false; // 강아지를 누르면 부탁 입력창도 열림
       const now = Date.now();
       taps = now - lastTap < 1600 ? taps + 1 : 1;
       lastTap = now;
       if (taps >= 3) return say('happy', '간지러워요! 헤헤', 2200);
+      if (taps === 1 && api.onAsk) { // 처음 한 번 누르면 머리 위에 약속 제안이 뜸
+        say('happy', '', 5200);
+        offer.classList.add('show');
+        return;
+      }
       if (taps === 2 && api.hint) {
         const h = api.hint();
         if (h) return say('happy', h, 3800);
