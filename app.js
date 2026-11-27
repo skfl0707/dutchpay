@@ -361,28 +361,36 @@
 
   $('imgBtn').addEventListener('click', async () => {
     if (!state.expenses.length) return toast('먼저 지출을 추가해 주세요');
-    let blob;
+    // 어떤 폰에서도 되는 방법: 이미지를 화면에 크게 보여 주고 "길게 눌러 저장"
+    let dataUrl;
+    try { dataUrl = drawResultImage().toDataURL('image/png'); } catch (e) { dataUrl = null; }
+    if (!dataUrl) return toast('이미지를 만들지 못했어요. 결과 복사를 이용해 주세요');
+    $('imgPreview').src = dataUrl;
+    $('imgModal').hidden = false;
+    document.body.style.overflow = 'hidden';
+    $('imgClose').focus();
+  });
+
+  function closeImg() {
+    $('imgModal').hidden = true;
+    $('imgPreview').removeAttribute('src');
+    document.body.style.overflow = '';
+  }
+  $('imgClose').addEventListener('click', closeImg);
+  $('imgModal').addEventListener('click', (ev) => { if (ev.target === $('imgModal')) closeImg(); });
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('imgModal').hidden) closeImg(); });
+
+  // 공유 시트로 보내기 (지원하는 폰에서만 버튼 표시)
+  $('imgShare').addEventListener('click', async () => {
     try {
-      const c = drawResultImage();
-      blob = await new Promise((res) => c.toBlob(res, 'image/png'));
-    } catch (e) { blob = null; }
-    if (!blob) return toast('이미지를 만들지 못했어요. 결과 복사를 이용해 주세요');
-    const file = new File([blob], '정산결과.png', { type: 'image/png' });
-    try {
+      const blob = await (await fetch($('imgPreview').src)).blob();
+      const file = new File([blob], '정산결과.png', { type: 'image/png' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: '더치페이 정산 결과' });
-        return;
-      }
+      } else toast('이 폰에서는 공유를 쓸 수 없어요. 이미지를 길게 눌러 저장해 주세요');
     } catch (e) {
-      if (e && e.name === 'AbortError') return;
+      if (!(e && e.name === 'AbortError')) toast('공유하지 못했어요. 이미지를 길게 눌러 저장해 주세요');
     }
-    // 공유 시트를 쓸 수 없으면 파일로 내려받기
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = '정산결과.png';
-    document.body.append(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-    toast('이미지를 저장했어요');
   });
 
   async function copyText(text) {

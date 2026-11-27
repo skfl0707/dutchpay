@@ -139,6 +139,17 @@
 
   </main>
 
+  <div id="imgModal" class="modal" hidden role="dialog" aria-modal="true" aria-label="정산 결과 이미지">
+    <div class="modal-box">
+      <p class="modal-tip"><strong>이미지를 길게 눌러</strong> "사진에 저장" 또는 "이미지 저장"을 선택하세요</p>
+      <img id="imgPreview" alt="정산 결과 이미지">
+      <div class="modal-btns">
+        <button id="imgShare" class="btn" type="button">공유로 보내기</button>
+        <button id="imgClose" class="btn ghost" type="button">닫기</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="settle.js"></script>
