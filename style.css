@@ -459,7 +459,7 @@ a.ichip.near.on { background: var(--blue-soft); border-color: var(--blue); color
 .wrap { padding-bottom: 84px; }
 .mascot {
   position: fixed; right: 4px; bottom: env(safe-area-inset-bottom); width: 92px; z-index: 4;
-  pointer-events: none; transform: translateY(40%); transition: transform .4s cubic-bezier(.3, 1.5, .5, 1);
+  pointer-events: none; transform: translateY(22%); transition: transform .4s cubic-bezier(.3, 1.5, .5, 1);
 }
 .mascot.up { transform: translateY(0); }
 .mascot svg { display: block; width: 100%; height: auto; overflow: visible; }
