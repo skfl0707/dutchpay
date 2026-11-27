@@ -293,6 +293,20 @@ button:focus-visible, .check:focus-within { outline: 3px solid rgba(47, 91, 255,
 .hero .faces .av { box-shadow: 0 0 0 2px var(--navy); }
 .faces-n { margin-left: 4px; color: var(--muted); font-size: .88rem; }
 .done-line { margin: 0 0 10px; padding: 8px 12px; border-radius: 12px; background: #E4F8EF; color: #137A52; font-size: .88rem; font-weight: 600; }
+.memo { margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: var(--bg); color: var(--ink); font-size: .92rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.items { margin-bottom: 10px; }
+.items-head { display: block; color: var(--muted); font-size: .85rem; font-weight: 600; margin-bottom: 6px; }
+.item-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ichip {
+  min-height: 40px; padding: 0 14px; border-radius: 999px; font-size: .92rem; font-weight: 600; cursor: pointer;
+  border: 1.5px solid var(--line); background: #fff; color: var(--ink);
+}
+.ichip.on { background: #E4F8EF; border-color: #7ED9B2; color: #137A52; text-decoration: line-through; }
+.maps { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.maplink {
+  display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: 10px;
+  background: var(--blue-soft); color: var(--blue); font-size: .88rem; font-weight: 700; text-decoration: none;
+}
 .appt-btns { display: flex; flex-wrap: wrap; gap: 6px; }
 .mini.strong { background: var(--blue); color: #fff; }
 .mini.strong:hover { background: #2450E6; }

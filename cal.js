@@ -84,6 +84,40 @@
       li.append(row);
     }
 
+    if (a.memo) li.append(el('p', 'memo', a.memo));
+
+    // 준비물: 눌러서 챙겼는지 체크
+    if (a.items.length) {
+      const got = a.items.filter((x) => x.d).length;
+      const box = el('div', 'items');
+      box.append(el('small', 'items-head', '준비물 ' + got + '/' + a.items.length + (got === a.items.length ? ' · 다 챙겼어요' : '')));
+      const row = el('div', 'item-chips');
+      a.items.forEach((x) => {
+        const b = el('button', 'ichip' + (x.d ? ' on' : ''), (x.d ? '✓ ' : '') + x.t);
+        b.type = 'button';
+        b.setAttribute('aria-pressed', x.d ? 'true' : 'false');
+        b.onclick = () => {
+          S.update(a.id, { items: a.items.map((y) => (y.t === x.t ? { t: y.t, d: !y.d } : y)) });
+          renderDay();
+        };
+        row.append(b);
+      });
+      box.append(row);
+      li.append(box);
+    }
+
+    // 지도: 앱 안에서 지도를 만들지 않고 네이버지도/카카오맵 검색 링크로 연결
+    const maps = S.mapLinks(a.place);
+    if (maps) {
+      const row = el('div', 'maps');
+      [['네이버지도', maps.naver], ['카카오맵', maps.kakao]].forEach(([label, href]) => {
+        const link = el('a', 'maplink', label + '에서 장소 보기');
+        link.href = href; link.target = '_blank'; link.rel = 'noopener noreferrer';
+        row.append(link);
+      });
+      li.append(row);
+    }
+
     if (a.settlement && a.settlement.expenses.length) {
       const r = settle(a.settlement.people, a.settlement.expenses);
       li.append(el('p', 'done-line', '정산 기록 있음 · 총 ' + won(r.total) + ' · 송금 ' + r.transfers.length + '번'));
@@ -122,6 +156,8 @@
     $('apTime').value = a ? a.time : '';
     $('apPlace').value = a ? a.place : '';
     $('apPeople').value = a ? a.people.join(', ') : '';
+    $('apItems').value = a ? a.items.map((x) => x.t).join(', ') : '';
+    $('apMemo').value = a ? a.memo : '';
     $('formCard').hidden = false;
     $('addAppt').hidden = true;
     $('formCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -146,6 +182,8 @@
       time: $('apTime').value,
       place: $('apPlace').value.trim(),
       people: $('apPeople').value.split(/[,，]/).map((s) => s.trim()).filter(Boolean),
+      memo: $('apMemo').value.trim(),
+      items: S.parseItems($('apItems').value, editId && S.get(editId) ? S.get(editId).items : []),
     };
     const saved = editId ? S.update(editId, fields) : S.add(fields);
     if (!saved) return toast('저장하지 못했어요. 입력한 내용을 확인해 주세요');
@@ -163,6 +201,8 @@
     const lines = ['[약속] ' + a.title, S.labelDate(a.date) + (a.time ? ' ' + a.time : '')];
     if (a.place) lines.push('장소: ' + a.place);
     if (a.people.length) lines.push('함께: ' + a.people.join(', '));
+    if (a.items.length) lines.push('준비물: ' + a.items.map((x) => x.t).join(', '));
+    if (a.memo) lines.push('메모: ' + a.memo);
     lines.push('', '아래 링크를 열면 내 캘린더에 추가할 수 있어요.', url);
     const text = lines.join('\n');
     if (navigator.share) {
@@ -189,7 +229,9 @@
       row.append(el('span', 'faces-n', a.people.join(', ')));
       card.append(row);
     }
-    const add = el('button', 'btn big', '내 캘린더에 추가');
+    if (a.items.length) card.append(el('p', 'join-meta', '준비물: ' + a.items.map((x) => x.t).join(', ')));
+    if (a.memo) card.append(el('p', 'memo', a.memo));
+    const add =el('button', 'btn big', '내 캘린더에 추가');
     add.type = 'button';
     add.onclick = () => {
       const dup = S.list().some((x) => x.title === a.title && x.date === a.date && x.time === a.time);
