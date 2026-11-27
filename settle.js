@@ -71,13 +71,39 @@
     return { balances: balance, transfers, total };
   }
 
-  // 메신저로 보낼 정산 결과 문구
-  function formatResult(people, expenses, result) {
-    const won = (n) => n.toLocaleString('ko-KR') + '원';
+  const won = (n) => n.toLocaleString('ko-KR') + '원';
+
+  // 송금 한 건을 구분하는 이름표 (보냈어요 체크를 기억하는 데 사용)
+  function transferKey(t) { return t.from + '>' + t.to + ':' + t.amount; }
+
+  // 아직 안 보낸 송금만 골라냄
+  function pendingTransfers(transfers, paid) {
+    const p = paid || {};
+    return transfers.filter((t) => !p[transferKey(t)]);
+  }
+
+  // 지금 송금 목록에 없는 옛 체크 표시는 버림 (금액이 바뀌면 새 송금으로 취급)
+  function prunePaid(transfers, paid) {
+    const out = {};
+    const p = paid || {};
+    transfers.forEach((t) => { const k = transferKey(t); if (p[k] === true) out[k] = true; });
+    return out;
+  }
+
+  // 보내는 사람에게 보낼 송금 요청 문구
+  function requestText(t, title) {
+    return t.from + '님, ' + (title || '모임') + ' 정산 안내예요.\n'
+      + t.to + '님께 ' + won(t.amount) + ' 보내 주세요. 감사합니다.';
+  }
+
+  // 메신저로 보낼 정산 결과 문구 (paid: 이미 보낸 송금 표시)
+  function formatResult(people, expenses, result, paid) {
+    const p = paid || {};
     const lines = ['[더치페이 정산 결과]', '총 ' + won(result.total) + ' / 참가자 ' + people.length + '명', ''];
     if (result.transfers.length) {
       lines.push('보낼 돈');
-      result.transfers.forEach((t) => lines.push(t.from + ' → ' + t.to + '  ' + won(t.amount)));
+      result.transfers.forEach((t) =>
+        lines.push(t.from + ' → ' + t.to + '  ' + won(t.amount) + (p[transferKey(t)] ? ' (송금 완료)' : '')));
     } else {
       lines.push('주고받을 돈이 없어요.');
     }
@@ -88,6 +114,7 @@
     return lines.join('\n');
   }
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = { settle, formatResult };
-  else { root.settle = settle; root.formatResult = formatResult; }
+  const api = { settle, formatResult, transferKey, pendingTransfers, prunePaid, requestText };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else Object.assign(root, api);
 })(typeof self !== 'undefined' ? self : this);

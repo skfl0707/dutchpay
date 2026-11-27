@@ -4,6 +4,7 @@
   let state = load();
   let seenPeople = new Set(state.people); // 새로 추가된 항목만 움직이게 하려고 기억
   let seenExp = new Set(state.expenses.map((e) => e.id));
+  let animate = true;
 
   const $ = (id) => document.getElementById(id);
   const won = (n) => n.toLocaleString('ko-KR') + '원';
@@ -13,12 +14,12 @@
       const s = JSON.parse(localStorage.getItem(KEY));
       if (s && Array.isArray(s.people) && Array.isArray(s.expenses)) return s;
     } catch (e) {}
-    return { people: [], expenses: [] };
+    return { people: [], expenses: [], paid: {} };
   }
   function save() {
     // 약속과 연결된 정산이면 그 약속에도 함께 저장
     if (state.planId && window.CalStore) {
-      if (CalStore.get(state.planId)) CalStore.setSettlement(state.planId, { people: state.people, expenses: state.expenses });
+      if (CalStore.get(state.planId)) CalStore.setSettlement(state.planId, { people: state.people, expenses: state.expenses, paid: state.paid });
       else delete state.planId; // 연결된 약속이 삭제됨
     }
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
@@ -196,21 +197,175 @@
       li.append(el('strong', '', '주고받을 돈이 없어요'), el('span', '', '낸 금액과 쓴 금액이 서로 같아요.'));
       tl.append(li);
     }
+    const paid = state.paid || {};
+    const left = pendingTransfers(r.transfers, paid).length;
+    if (r.transfers.length) {
+      total.replaceChildren(document.createTextNode('총 ' + won(r.total) + ' 중 '));
+      if (left === 0) total.append(el('b', '', '모든 송금이 끝났어요'));
+      else {
+        total.append(el('b', '', left + '번'), document.createTextNode(' 송금하면 끝나요'));
+        if (left < r.transfers.length) total.append(document.createTextNode(' (' + (r.transfers.length - left) + '번 완료)'));
+      }
+    }
+    const still = !animate; // 체크를 눌렀을 때는 목록이 다시 움직이지 않게
+    animate = true;
     r.transfers.forEach((t) => {
-      const li = el('li', 't');
+      const done = !!paid[transferKey(t)];
+      const li = el('li', 't' + (done ? ' done' : '') + (still ? ' still' : ''));
       const who = el('div', 'who');
       who.append(avatar(t.from, true), el('span', '', t.from), el('span', 'arrow', '→'), avatar(t.to, true), el('span', '', t.to));
       const amt = el('div', 'amt', t.amount.toLocaleString('ko-KR'));
       amt.append(el('small', '', '원'));
-      li.append(who, amt);
+      const acts = el('div', 'tact');
+      const chk = el('button', 'tbtn' + (done ? ' on' : ''), done ? '✓ 송금 완료' : '송금했어요');
+      chk.type = 'button';
+      chk.setAttribute('aria-pressed', done ? 'true' : 'false');
+      chk.setAttribute('aria-label', t.from + '님이 ' + t.to + '님께 보낸 송금 ' + (done ? '완료 취소' : '완료로 표시'));
+      chk.onclick = () => {
+        state.paid = { ...(state.paid || {}) };
+        if (done) delete state.paid[transferKey(t)]; else state.paid[transferKey(t)] = true;
+        animate = false;
+        update();
+      };
+      const ask = el('button', 'tbtn', '요청 문구 복사');
+      ask.type = 'button';
+      ask.setAttribute('aria-label', t.from + '님께 보낼 송금 요청 문구 복사');
+      ask.onclick = async () => {
+        const ok = await copyText(requestText(t, planTitle()));
+        toast(ok ? t.from + '님께 보낼 문구를 복사했어요' : '복사하지 못했어요. 다시 눌러 주세요');
+      };
+      acts.append(chk, ask);
+      li.append(who, amt, acts);
       tl.append(li);
     });
   }
 
+  // 약속과 연결된 정산이면 약속 이름을 문구에 사용
+  function planTitle() {
+    const a = state.planId && window.CalStore ? CalStore.get(state.planId) : null;
+    return a ? a.title : '';
+  }
+
   // ----- 결과 복사 / 공유 -----
   function resultText() {
-    return formatResult(state.people, state.expenses, settle(state.people, state.expenses));
+    return formatResult(state.people, state.expenses, settle(state.people, state.expenses), state.paid);
   }
+
+  // ----- 결과 이미지 저장 -----
+  const PALETTE = [['#FFE3E3', '#B42323'], ['#FFEBD1', '#A35A00'], ['#FFF6BF', '#7A6500'], ['#D9F5E5', '#14774A'], ['#DCEBFF', '#1B5BB8'], ['#EBDEFF', '#5B2DB0']];
+  const FONT = '"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
+
+  function drawResultImage() {
+    const r = settle(state.people, state.expenses);
+    const paid = state.paid || {};
+    const W = 1080, PAD = 64, S = 2; // 가로 1080, 선명하게 2배로 그림
+    const exps = state.expenses.slice(0, 10);
+    const rowsH = Math.max(r.transfers.length, 1) * 130;
+    const H = 330 + rowsH + 120 + exps.length * 60 + (state.expenses.length > 10 ? 50 : 0) + 110;
+    const c = document.createElement('canvas');
+    c.width = W * S; c.height = H * S;
+    const g = c.getContext('2d');
+    g.scale(S, S);
+    const rr = (x, y, w, h, rad) => { g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, rad) : g.rect(x, y, w, h); };
+    const fit = (txt, maxW) => { // 너무 긴 글은 ...으로 줄임
+      if (g.measureText(txt).width <= maxW) return txt;
+      let s = Array.from(txt);
+      while (s.length > 1 && g.measureText(s.join('') + '…').width > maxW) s.pop();
+      return s.join('') + '…';
+    };
+    const face = (name, x, y, rad) => {
+      let h = 0;
+      for (const ch of name) h = (h * 31 + ch.codePointAt(0)) % 997;
+      const p = PALETTE[h % 6];
+      g.fillStyle = p[0]; g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fill();
+      g.fillStyle = p[1]; g.font = '800 ' + Math.round(rad * 1.0) + 'px ' + FONT;
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(Array.from(name)[0] || '?', x, y + 2);
+    };
+
+    g.fillStyle = '#101B3B'; g.fillRect(0, 0, W, H);
+    g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+    const title = planTitle();
+    g.fillStyle = '#5BE3B0'; g.font = '800 34px ' + FONT;
+    g.fillText('더치페이 정산 결과', PAD, 110);
+    if (title) { g.fillStyle = '#A9B6D8'; g.font = '600 30px ' + FONT; g.fillText(fit(title, W - PAD * 2), PAD, 160); }
+    g.fillStyle = '#fff'; g.font = '800 72px ' + FONT;
+    g.fillText(won(r.total), PAD, 250);
+    g.fillStyle = '#A9B6D8'; g.font = '600 30px ' + FONT;
+    g.fillText('총 지출 · 참가자 ' + state.people.length + '명', PAD, 296);
+
+    let y = 330;
+    if (!r.transfers.length) {
+      g.fillStyle = '#5BE3B0'; g.font = '800 40px ' + FONT;
+      g.fillText('주고받을 돈이 없어요', PAD, y + 80);
+    }
+    r.transfers.forEach((t) => {
+      const done = !!paid[transferKey(t)];
+      g.globalAlpha = done ? 0.5 : 1;
+      g.fillStyle = 'rgba(255,255,255,.07)'; rr(PAD, y, W - PAD * 2, 110, 24); g.fill();
+      face(t.from, PAD + 52, y + 55, 28);
+      g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+      g.fillStyle = '#fff'; g.font = '700 32px ' + FONT;
+      g.fillText(fit(t.from, 150), PAD + 96, y + 66);
+      g.fillStyle = '#7F8FB8'; g.fillText('→', PAD + 270, y + 66);
+      face(t.to, PAD + 350, y + 55, 28);
+      g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+      g.fillStyle = '#fff'; g.font = '700 32px ' + FONT;
+      g.fillText(fit(t.to, 150), PAD + 394, y + 66);
+      g.textAlign = 'right'; g.fillStyle = '#5BE3B0'; g.font = '800 40px ' + FONT;
+      g.fillText(won(t.amount), W - PAD - 28, done ? y + 52 : y + 68);
+      if (done) { g.fillStyle = '#fff'; g.font = '700 24px ' + FONT; g.fillText('✓ 송금 완료', W - PAD - 28, y + 88); }
+      g.globalAlpha = 1;
+      y += 130;
+    });
+
+    y += 20;
+    if (exps.length) {
+      g.textAlign = 'left'; g.fillStyle = '#A9B6D8'; g.font = '700 28px ' + FONT;
+      g.fillText('지출 내역', PAD, y + 20);
+      y += 60;
+      exps.forEach((e) => {
+        g.textAlign = 'left'; g.fillStyle = '#fff'; g.font = '600 30px ' + FONT;
+        g.fillText(fit(e.title + ' (' + e.payer + ')', 620), PAD, y + 20);
+        g.textAlign = 'right'; g.fillText(won(e.amount), W - PAD, y + 20);
+        y += 60;
+      });
+      if (state.expenses.length > 10) {
+        g.textAlign = 'left'; g.fillStyle = '#A9B6D8'; g.font = '600 26px ' + FONT;
+        g.fillText('외 ' + (state.expenses.length - 10) + '건', PAD, y + 14);
+        y += 50;
+      }
+    }
+    g.textAlign = 'left'; g.fillStyle = '#5E6C93'; g.font = '600 24px ' + FONT;
+    g.fillText('약속 이후 · ' + new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }), PAD, H - 50);
+    return c;
+  }
+
+  $('imgBtn').addEventListener('click', async () => {
+    if (!state.expenses.length) return toast('먼저 지출을 추가해 주세요');
+    let blob;
+    try {
+      const c = drawResultImage();
+      blob = await new Promise((res) => c.toBlob(res, 'image/png'));
+    } catch (e) { blob = null; }
+    if (!blob) return toast('이미지를 만들지 못했어요. 결과 복사를 이용해 주세요');
+    const file = new File([blob], '정산결과.png', { type: 'image/png' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: '더치페이 정산 결과' });
+        return;
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+    // 공유 시트를 쓸 수 없으면 파일로 내려받기
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = '정산결과.png';
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast('이미지를 저장했어요');
+  });
 
   async function copyText(text) {
     try {
@@ -276,6 +431,7 @@
       id: now, name, savedAt: now,
       people: state.people.slice(),
       expenses: state.expenses.map((e) => ({ ...e, shares: e.shares.slice() })),
+      paid: { ...(state.paid || {}) },
     });
     if (!saveHistory()) { history.shift(); return toast('저장하지 못했어요. 브라우저 저장 공간을 확인해 주세요'); }
     $('saveName').value = '';
@@ -289,6 +445,7 @@
     state = {
       people: r.people.slice(),
       expenses: r.expenses.map((e) => ({ ...e, shares: e.shares.slice() })),
+      paid: { ...(r.paid || {}) },
     };
     seenPeople = new Set(state.people);
     seenExp = new Set(state.expenses.map((e) => e.id));
@@ -330,12 +487,17 @@
     $('historyEmpty').hidden = history.length > 0;
   }
 
-  function update() { save(); render(); }
+  function update() {
+    // 지출이 바뀌어 없어진 송금의 옛 체크 표시를 정리
+    state.paid = prunePaid(settle(state.people, state.expenses).transfers, state.paid);
+    save();
+    render();
+  }
 
   $('reset').addEventListener('click', () => {
     if (!state.people.length && !state.expenses.length) return toast('지울 내용이 없어요');
     if (confirm('입력한 내용을 모두 지울까요?')) {
-      state = { people: [], expenses: [] };
+      state = { people: [], expenses: [], paid: {} };
       update();
     }
   });
@@ -354,7 +516,7 @@
       if (hasData && state.planId !== id && !confirm('지금 입력한 정산 내용이 사라져요. "' + a.title + '" 약속의 정산을 시작할까요?\n(필요하면 먼저 "저장한 정산"에 저장해 두세요)')) return false;
       const s = a.settlement;
       state = s
-        ? { people: s.people.slice(), expenses: s.expenses.map((e) => ({ ...e, shares: e.shares.slice() })) }
+        ? { people: s.people.slice(), expenses: s.expenses.map((e) => ({ ...e, shares: e.shares.slice() })), paid: { ...(s.paid || {}) } }
         : { people: a.people.slice(), expenses: [] };
       state.planId = id;
       seenPeople = new Set(state.people);
