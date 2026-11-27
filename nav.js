@@ -4,7 +4,7 @@
   const S = CalStore;
   const $ = (id) => document.getElementById(id);
 
-  const TITLES = { home: '약속 이후', cal: '캘린더', dutch: '더치페이' };
+  const TITLES = { home: '약속지기', cal: '캘린더', dutch: '더치페이' };
 
   function renderHome() {
     const next = S.upcoming();
@@ -179,7 +179,7 @@
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
   $('bkFile').addEventListener('click', async () => {
-    const name = '약속이후_백업_' + S.todayYmd() + '.json';
+    const name = '약속지기_백업_' + S.todayYmd() + '.json';
     const file = new File([S.buildBackup()], name, { type: 'application/json' });
     try {
       if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); return; }
@@ -222,7 +222,7 @@
     $('top').classList.toggle('sub', view !== 'home');
     $('reset').hidden = view !== 'dutch';
     $('appTitle').textContent = TITLES[view];
-    document.title = view === 'home' ? '약속 이후' : TITLES[view] + ' · 약속 이후';
+    document.title = view === 'home' ? '약속지기' : TITLES[view] + ' · 약속지기';
 
     if (view === 'home') renderHome();
     else if (view === 'dutch') window.Dutch.refresh();

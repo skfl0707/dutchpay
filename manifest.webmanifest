@@ -1,6 +1,6 @@
 {
-  "name": "약속 이후",
-  "short_name": "약속 이후",
+  "name": "약속지기",
+  "short_name": "약속지기",
   "description": "친구와의 약속을 잡고, 만난 뒤 모임 비용까지 정산하는 앱",
   "lang": "ko",
   "start_url": "./",

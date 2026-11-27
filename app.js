@@ -444,7 +444,7 @@
       }
     }
     g.textAlign = 'left'; g.fillStyle = '#5E6C93'; g.font = '600 24px ' + FONT;
-    g.fillText('약속 이후 · ' + new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }), PAD, H - 50);
+    g.fillText('약속지기 · ' + new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }), PAD, H - 50);
     return c;
   }
 
