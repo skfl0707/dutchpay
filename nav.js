@@ -132,6 +132,16 @@
     if (!Mascot.isOff()) Mascot.say('happy', '다시 만나서 반가워요!');
   });
 
+  // 강아지를 두 번째로 눌렀을 때 알려 줄 말 (해야 할 일이 있으면 그걸, 없으면 다음 약속)
+  Mascot.hint = () => {
+    const td = S.todos();
+    if (td.unsettled.length) return td.unsettled[0].appt.title + ' 정산을 아직 안 했어요!';
+    if (td.pending.length) return td.pending[0].appt.title + ' 송금이 남아 있어요!';
+    const next = S.upcoming()[0];
+    if (next) { const dd = S.daysUntil(next.date); return dd === 0 ? '오늘 약속이 있어요! 즐거운 시간 보내요!' : next.title + '까지 D-' + dd + '!'; }
+    return null;
+  };
+
   // ----- 다크 모드 (처음엔 폰 설정을 따르고, 버튼을 누르면 고른 값을 기억) -----
   function applyTheme(t, remember) {
     document.documentElement.setAttribute('data-theme', t);

@@ -456,10 +456,10 @@ a.ichip { display: inline-flex; align-items: center; text-decoration: none; }
 a.ichip.near.on { background: var(--blue-soft); border-color: var(--blue); color: var(--blue); text-decoration: none; }
 
 /* 강아지 친구 */
-.wrap { padding-bottom: 84px; }
+.wrap { padding-bottom: 120px; }
 .mascot {
-  position: fixed; right: 4px; bottom: env(safe-area-inset-bottom); width: 92px; z-index: 4;
-  pointer-events: none; transform: translateY(22%); transition: transform .4s cubic-bezier(.3, 1.5, .5, 1);
+  position: fixed; right: 2px; bottom: env(safe-area-inset-bottom); width: 128px; z-index: 4;
+  padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transform: translateY(22%); transition: transform .4s cubic-bezier(.3, 1.5, .5, 1);
 }
 .mascot.up { transform: translateY(0); }
 .mascot svg { display: block; width: 100%; height: auto; overflow: visible; }
@@ -483,7 +483,7 @@ a.ichip.near.on { background: var(--blue-soft); border-color: var(--blue); color
 @keyframes pup-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
 @keyframes pup-float { 0% { opacity: 0; transform: translateY(8px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(-16px); } }
 .mascot-bubble {
-  position: fixed; right: 98px; bottom: calc(52px + env(safe-area-inset-bottom)); z-index: 4;
+  position: fixed; right: 134px; bottom: calc(70px + env(safe-area-inset-bottom)); z-index: 4;
   max-width: min(62vw, 250px); padding: 10px 14px; border-radius: 16px;
   background: var(--card); color: var(--ink); border: 1.5px solid var(--line);
   box-shadow: 0 6px 18px rgba(23, 33, 58, .16); font-size: .92rem; font-weight: 700; line-height: 1.4;
@@ -508,3 +508,7 @@ a.ichip.near.on { background: var(--blue-soft); border-color: var(--blue); color
 @keyframes pup-sink { from { transform: translateY(0) scaleY(1); } to { transform: translateY(3px) scaleY(.96); } }
 @keyframes pup-tear { 0% { opacity: 0; transform: translateY(-2px); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(9px); } }
 @keyframes pup-drop { 0% { opacity: 0; transform: translateY(-4px); } 25% { opacity: .9; } 100% { opacity: 0; transform: translateY(14px); } }
+
+.mascot:active svg { transform: scale(.95); }
+.mascot svg { transition: transform .12s; pointer-events: none; }
+.mascot:focus-visible { outline: 3px solid rgba(47, 91, 255, .45); outline-offset: 2px; border-radius: 16px; }

@@ -77,11 +77,13 @@ window.UI = (function () {
     try { off = localStorage.getItem('dutchpay-mascot') === 'off'; } catch (e) {}
 
     function build() {
-      root = document.createElement('div');
+      root = document.createElement('button'); // 눌러서 놀 수 있게 (키보드로도 가능)
+      root.type = 'button';
       root.className = 'mascot';
       root.dataset.state = 'idle';
-      root.setAttribute('aria-hidden', 'true');
-      root.innerHTML = SVG; // 앱 안에 고정된 그림 (사용자 입력 아님)
+      root.setAttribute('aria-label', '강아지 친구와 놀기');
+      root.innerHTML = SVG;
+      root.addEventListener('click', poke); // 앱 안에 고정된 그림 (사용자 입력 아님)
       bubble = document.createElement('div');
       bubble.className = 'mascot-bubble';
       bubble.setAttribute('aria-hidden', 'true'); // 같은 내용을 알림창(toast)이 읽어 줌
@@ -105,13 +107,34 @@ window.UI = (function () {
       bubble.classList.add('show');
       timer = setTimeout(rest, ms || 3400);
     }
+    // 눌러서 놀기: 짧게 연달아 누르면 간지러워하고, 가끔 앱 상태를 알려 줌(hint)
+    const LINES = [
+      ['happy', '멍멍! 반가워요!'], ['happy', '쓰다듬어 줘서 고마워요!'], ['happy', '같이 놀아요!'],
+      ['thumb', '잘하고 있어요, 최고!'], ['happy', '오늘도 약속 잘 지켜요!'],
+    ];
+    let taps = 0, lastTap = 0, last = -1;
+    function poke() {
+      const now = Date.now();
+      taps = now - lastTap < 1600 ? taps + 1 : 1;
+      lastTap = now;
+      if (taps >= 3) return say('happy', '간지러워요! 헤헤', 2200);
+      if (taps === 2 && api.hint) {
+        const h = api.hint();
+        if (h) return say('happy', h, 3800);
+      }
+      let i;
+      do { i = Math.floor(Math.random() * LINES.length); } while (i === last && LINES.length > 1);
+      last = i;
+      say(LINES[i][0], LINES[i][1], 2800);
+    }
     function setOff(v) {
       off = !!v;
       try { localStorage.setItem('dutchpay-mascot', off ? 'off' : 'on'); } catch (e) {}
       if (root) { rest(); root.hidden = off; }
     }
     build();
-    return { say, setOff, isOff: () => off };
+    const api = { say, setOff, isOff: () => off, hint: null }; // hint: 화면 쪽에서 알려 줄 말을 정해 주는 함수
+    return api;
   })();
 
   return { won, el, avatar, toast, copyText, Mascot };
