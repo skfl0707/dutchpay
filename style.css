@@ -449,3 +449,8 @@ input[type=date]:focus, input[type=time]:focus { outline: none; border-color: va
 .sample { border: 2px dashed var(--blue); }
 .sample h2 { margin-bottom: 6px; }
 .sample .hint { margin: 0 0 12px; }
+
+/* 주변 찾기 */
+.nearby { margin-bottom: 10px; }
+a.ichip { display: inline-flex; align-items: center; text-decoration: none; }
+a.ichip.near.on { background: var(--blue-soft); border-color: var(--blue); color: var(--blue); text-decoration: none; }

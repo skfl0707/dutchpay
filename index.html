@@ -189,6 +189,15 @@
           <p class="hint tight">나를 포함해서 쉼표로 구분해 적어 주세요. 정산할 때 참가자로 그대로 들어가요.</p>
           <label>준비물 (선택) <input id="apItems" type="text" placeholder="예: 돗자리, 우산, 보조배터리" maxlength="300" autocomplete="off"></label>
           <p class="hint tight">쉼표로 구분해 적으면 약속 카드에서 눌러서 챙김 표시를 할 수 있어요.</p>
+          <label>모임 종류 (선택)
+            <select id="apKind">
+              <option value="">자동 (약속 이름으로 판단)</option>
+              <option value="meal">식사</option>
+              <option value="drink">술</option>
+              <option value="cafe">카페</option>
+            </select>
+          </label>
+          <p class="hint tight">장소를 적으면 약속 카드에서 그 근처의 맛집·술집·카페를 지도 앱으로 바로 찾아볼 수 있어요.</p>
           <label>메모 (선택) <input id="apMemo" type="text" placeholder="예: 비 오면 실내로 변경" maxlength="200" autocomplete="off"></label>
           <button type="submit" class="btn big">저장</button>
           <button id="apCancel" type="button" class="link center">취소</button>

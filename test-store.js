@@ -178,4 +178,25 @@ console.log('OK  공유 링크 (링크 길이 ' + code.length + '자)');
   console.log('OK  예시 데이터');
 }
 
+// 주변 맛집·술집·카페 검색 링크
+{
+  assert.strictEqual(S.guessKind('금요일 술 약속'), 'drink');
+  assert.strictEqual(S.guessKind('팀 회식'), 'drink');
+  assert.strictEqual(S.guessKind('커피 한잔'), 'cafe');
+  assert.strictEqual(S.guessKind('카페 스터디'), 'cafe');
+  assert.strictEqual(S.guessKind('동창 모임'), 'meal');
+  assert.strictEqual(S.guessKind(''), 'meal');
+  const n = S.nearbyLinks('강남역 2번 출구', 'drink');
+  assert.strictEqual(n.word, '술집');
+  assert.strictEqual(n.naver, 'https://map.naver.com/p/search/' + encodeURIComponent('강남역 술집'), '출구 번호는 검색어에서 뺌');
+  assert.strictEqual(n.kakao, 'https://map.kakao.com/link/search/' + encodeURIComponent('강남역 술집'));
+  assert.strictEqual(S.nearbyLinks('', 'meal'), null);
+  assert.strictEqual(S.nearbyLinks('홍대입구', 'bad'), null);
+  const x = S.add({ title: '술 약속', date: '2026-12-12', place: '홍대입구', kind: 'drink' });
+  assert.strictEqual(S.get(x.id).kind, 'drink');
+  assert.strictEqual(S.cleanAppt({ title: 'a', date: '2026-12-12', kind: '<b>' }).kind, undefined, '이상한 값은 버림');
+  assert.strictEqual(S.decodeShare(S.encodeShare(S.get(x.id))).kind, 'drink', '공유 링크에도 종류 포함');
+  console.log('OK  주변 검색 링크');
+}
+
 console.log('저장소 테스트 통과');

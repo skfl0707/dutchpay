@@ -118,6 +118,24 @@
       li.append(row);
     }
 
+    // 주변 찾기: 약속 장소 근처의 맛집/술집/카페를 지도 앱 검색으로 연결
+    if (a.place) {
+      const now = a.kind || S.guessKind(a.title);
+      const row = el('div', 'nearby');
+      row.append(el('small', 'items-head', a.place + ' 주변 찾기'));
+      const chips = el('div', 'item-chips');
+      [['meal', '맛집'], ['drink', '술집'], ['cafe', '카페']].forEach(([k, label]) => {
+        const n = S.nearbyLinks(a.place, k);
+        if (!n) return;
+        const link = el('a', 'ichip near' + (k === now ? ' on' : ''), (k === now ? '추천 · ' : '') + label);
+        link.href = n.naver; link.target = '_blank'; link.rel = 'noopener noreferrer';
+        link.setAttribute('aria-label', a.place + ' 주변 ' + label + ' 네이버지도에서 검색');
+        chips.append(link);
+      });
+      row.append(chips);
+      li.append(row);
+    }
+
     if (a.settlement && a.settlement.expenses.length) {
       const r = settle(a.settlement.people, a.settlement.expenses);
       li.append(el('p', 'done-line', '정산 기록 있음 · 총 ' + won(r.total) + ' · 송금 ' + r.transfers.length + '번'));
@@ -158,6 +176,7 @@
     $('apPeople').value = a ? a.people.join(', ') : '';
     $('apItems').value = a ? a.items.map((x) => x.t).join(', ') : '';
     $('apMemo').value = a ? a.memo : '';
+    $('apKind').value = a && a.kind ? a.kind : '';
     $('formCard').hidden = false;
     $('addAppt').hidden = true;
     $('formCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -183,6 +202,7 @@
       place: $('apPlace').value.trim(),
       people: $('apPeople').value.split(/[,，]/).map((s) => s.trim()).filter(Boolean),
       memo: $('apMemo').value.trim(),
+      kind: $('apKind').value,
       items: S.parseItems($('apItems').value, editId && S.get(editId) ? S.get(editId).items : []),
     };
     const saved = editId ? S.update(editId, fields) : S.add(fields);

@@ -71,6 +71,7 @@
     });
     return out;
   }
+  const KINDS = ['meal', 'drink', 'cafe'];
   function cleanAppt(raw) {
     if (!raw || typeof raw !== 'object') return null;
     const title = cleanText(raw.title, 30);
@@ -87,6 +88,7 @@
     };
     const s = cleanSettlement(raw.settlement);
     if (s) a.settlement = s;
+    if (KINDS.includes(raw.kind)) a.kind = raw.kind; // 모임 종류(식사/술/카페), 없으면 약속 이름으로 추측
     if (raw.sample === true) a.sample = true; // 처음 체험용 예시 데이터
     if (raw.skipSettle === true) a.skipSettle = true; // "정산 없음"으로 표시한 약속
     return a;
@@ -151,7 +153,7 @@
     // 준비물은 이름만 보냄 (체크 표시는 각자의 것)
     return toB64(JSON.stringify({
       v: 1, t: a.title, d: a.date, h: a.time || '', p: a.place || '', w: a.people || [],
-      m: a.memo || '', i: (a.items || []).map((x) => x.t),
+      m: a.memo || '', i: (a.items || []).map((x) => x.t), k: a.kind || '',
     }));
   }
   function decodeShare(code) {
@@ -160,7 +162,7 @@
       const o = JSON.parse(fromB64(code));
       if (!o || o.v !== 1) return null;
       const items = Array.isArray(o.i) ? o.i.map((t) => ({ t, d: false })) : [];
-      return cleanAppt({ title: o.t, date: o.d, time: o.h, place: o.p, people: o.w, memo: o.m, items }); // id는 받는 쪽에서 새로 만듦
+      return cleanAppt({ title: o.t, date: o.d, time: o.h, place: o.p, people: o.w, memo: o.m, items, kind: o.k }); // id는 받는 쪽에서 새로 만듦
     } catch (e) { return null; }
   }
 
@@ -304,6 +306,22 @@
     return cleanItems(names.map((t) => ({ t: t.slice(0, 20), d: !!done[t.slice(0, 20)] })));
   }
 
+  // 약속 이름으로 모임 종류 추측: 술 / 카페 / 식사
+  function guessKind(title) {
+    const t = String(title || '');
+    if (/술|호프|맥주|소주|막걸리|와인|위스키|칵테일|포차|이자카야|회식|2차|뒤풀이|펍/.test(t)) return 'drink';
+    if (/카페|커피|디저트|브런치|케이크|빵/.test(t)) return 'cafe';
+    return 'meal';
+  }
+  const KIND_WORD = { meal: '맛집', drink: '술집', cafe: '카페' };
+  // 장소 주변 가게를 지도 앱에서 검색하는 링크 (앱이 직접 추천하지 않고, 지도 앱의 순위·후기를 그대로 사용)
+  function nearbyLinks(place, kind) {
+    const base = cleanText(place, 30).replace(/\s*\d+번\s*출구/g, '').trim();
+    if (!base || !KIND_WORD[kind]) return null;
+    const e = encodeURIComponent(base + ' ' + KIND_WORD[kind]);
+    return { word: KIND_WORD[kind], naver: 'https://map.naver.com/p/search/' + e, kakao: 'https://map.kakao.com/link/search/' + e };
+  }
+
   // 지도 앱 검색 링크 (API 없이 주소만 사용)
   function mapLinks(place) {
     const q = cleanText(place, 30);
@@ -314,7 +332,7 @@
 
   const api = {
     friends, addFriends, removeFriend, hasSample, addSample, removeSamples,
-    parseItems, mapLinks, todos, dayDiff, buildBackup, parseBackup, applyBackup,
+    parseItems, mapLinks, guessKind, nearbyLinks, todos, dayDiff, buildBackup, parseBackup, applyBackup,
     fmt, todayYmd, validYmd, labelDate, daysUntil,
     list, get, byDate, upcoming, add, update, remove, setSettlement,
     encodeShare, decodeShare, cleanAppt,
