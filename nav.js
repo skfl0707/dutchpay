@@ -1,6 +1,6 @@
 // 화면 전환(홈 / 캘린더 / 더치페이)과 홈 화면. 주소의 # 뒤 값으로 화면을 나눔.
 (function () {
-  const { el, avatar, won, toast, copyText } = UI;
+  const { el, avatar, won, toast, copyText, Mascot } = UI;
   const S = CalStore;
   const $ = (id) => document.getElementById(id);
 
@@ -122,6 +122,15 @@
     $('upEmpty').hidden = up.children.length > 0;
     $('upH').hidden = false;
   }
+
+  // ----- 강아지 친구 보이기/숨기기 -----
+  function paintMascotBtn() { $('mascotToggle').textContent = Mascot.isOff() ? '강아지 친구 다시 보기' : '강아지 친구 숨기기'; }
+  paintMascotBtn();
+  $('mascotToggle').addEventListener('click', () => {
+    Mascot.setOff(!Mascot.isOff());
+    paintMascotBtn();
+    if (!Mascot.isOff()) Mascot.say('happy', '다시 만나서 반가워요!');
+  });
 
   // ----- 다크 모드 (처음엔 폰 설정을 따르고, 버튼을 누르면 고른 값을 기억) -----
   function applyTheme(t, remember) {

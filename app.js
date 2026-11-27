@@ -315,10 +315,12 @@
       chk.setAttribute('aria-pressed', done ? 'true' : 'false');
       chk.setAttribute('aria-label', t.from + '님이 ' + t.to + '님께 보낸 송금 ' + (done ? '완료 취소' : '완료로 표시'));
       chk.onclick = () => {
+        const wasDone = isAllDone();
         state.paid = { ...(state.paid || {}) };
         if (done) delete state.paid[transferKey(t)]; else state.paid[transferKey(t)] = true;
         animate = false;
         update();
+        if (!wasDone && isAllDone()) UI.Mascot.say('thumb', '정산 끝! 정말 잘했어요!', 4200);
       };
       const ask = el('button', 'tbtn', '요청 문구 복사');
       ask.type = 'button';
@@ -338,6 +340,12 @@
     animate = false;
     render();
   });
+
+  // 송금이 모두 끝났는지 (보낼 돈이 하나라도 있고 전부 완료)
+  function isAllDone() {
+    const tr = settle(state.people, state.expenses).transfers;
+    return tr.length > 0 && pendingTransfers(tr, state.paid).length === 0;
+  }
 
   // 약속과 연결된 정산이면 약속 이름을 문구에 사용
   function planTitle() {

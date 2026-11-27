@@ -454,3 +454,42 @@ input[type=date]:focus, input[type=time]:focus { outline: none; border-color: va
 .nearby { margin-bottom: 10px; }
 a.ichip { display: inline-flex; align-items: center; text-decoration: none; }
 a.ichip.near.on { background: var(--blue-soft); border-color: var(--blue); color: var(--blue); text-decoration: none; }
+
+/* 강아지 친구 */
+.wrap { padding-bottom: 84px; }
+.mascot {
+  position: fixed; right: 4px; bottom: env(safe-area-inset-bottom); width: 92px; z-index: 4;
+  pointer-events: none; transform: translateY(40%); transition: transform .4s cubic-bezier(.3, 1.5, .5, 1);
+}
+.mascot.up { transform: translateY(0); }
+.mascot svg { display: block; width: 100%; height: auto; overflow: visible; }
+.mascot[hidden] { display: none; }
+.mascot[data-state="idle"] [data-s]:not([data-s~="idle"]),
+.mascot[data-state="happy"] [data-s]:not([data-s~="happy"]),
+.mascot[data-state="thumb"] [data-s]:not([data-s~="thumb"]) { display: none; }
+.mascot .dog { transform-box: fill-box; transform-origin: 50% 100%; }
+.mascot[data-state="happy"] .dog { animation: pup-hop .5s ease-in-out 4; }
+.mascot[data-state="thumb"] .dog { animation: pup-bob .7s ease-in-out 3; }
+.mascot .tail { transform-box: fill-box; transform-origin: 0% 100%; animation: pup-wag 1.6s ease-in-out infinite; }
+.mascot:not([data-state="idle"]) .tail { animation-duration: .3s; }
+.mascot .eyes { transform-box: fill-box; transform-origin: 50% 50%; animation: pup-blink 4.5s infinite; }
+.mascot .fx text { animation: pup-float 1.5s ease-out infinite; opacity: 0; }
+.mascot .fx .f2 { animation-delay: .35s; }
+.mascot .fx .f3 { animation-delay: .7s; }
+@keyframes pup-hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-14px); } }
+@keyframes pup-bob { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes pup-wag { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(14deg); } }
+@keyframes pup-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+@keyframes pup-float { 0% { opacity: 0; transform: translateY(8px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(-16px); } }
+.mascot-bubble {
+  position: fixed; right: 98px; bottom: calc(52px + env(safe-area-inset-bottom)); z-index: 4;
+  max-width: min(62vw, 250px); padding: 10px 14px; border-radius: 16px;
+  background: var(--card); color: var(--ink); border: 1.5px solid var(--line);
+  box-shadow: 0 6px 18px rgba(23, 33, 58, .16); font-size: .92rem; font-weight: 700; line-height: 1.4;
+  opacity: 0; transform: translateY(8px) scale(.96); transition: opacity .2s, transform .2s; pointer-events: none;
+}
+.mascot-bubble.show { opacity: 1; transform: none; }
+.mascot-bubble::after {
+  content: ''; position: absolute; right: -7px; bottom: 14px; width: 12px; height: 12px;
+  background: var(--card); border-right: 1.5px solid var(--line); border-top: 1.5px solid var(--line); transform: rotate(45deg);
+}

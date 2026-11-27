@@ -213,6 +213,7 @@
     closeForm();
     renderMonth(); renderDay();
     toast(wasEdit ? '약속을 수정했어요' : '약속을 추가했어요');
+    if (!wasEdit) UI.Mascot.say('happy', '약속 잡았다! 신난다!');
   });
 
   // ----- 공유 (링크에 약속 내용을 담아 보냄) -----
@@ -257,7 +258,7 @@
       const dup = S.list().some((x) => x.title === a.title && x.date === a.date && x.time === a.time);
       if (dup) { toast('이미 추가한 약속이에요'); }
       else if (!S.add(a)) { return toast('저장하지 못했어요'); }
-      else toast('내 캘린더에 추가했어요');
+      else { toast('내 캘린더에 추가했어요'); UI.Mascot.say('happy', '새 약속이 생겼어요!'); }
       const [y, m] = a.date.split('-').map(Number);
       view.y = y; view.m = m - 1; view.sel = a.date;
       pendingJoin = null;
