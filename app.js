@@ -553,7 +553,10 @@
     },
     summary() {
       const r = settle(state.people, state.expenses);
-      return { people: state.people.length, expenses: state.expenses.length, total: r.total, transfers: r.transfers.length };
+      return {
+        people: state.people.length, expenses: state.expenses.length, total: r.total, transfers: r.transfers.length,
+        left: pendingTransfers(r.transfers, state.paid).length, linked: !!state.planId,
+      };
     },
   };
 

@@ -87,6 +87,7 @@
     };
     const s = cleanSettlement(raw.settlement);
     if (s) a.settlement = s;
+    if (raw.skipSettle === true) a.skipSettle = true; // "정산 없음"으로 표시한 약속
     return a;
   }
   const sortKey = (a) => a.date + ' ' + (a.time || '99:99');
@@ -162,6 +163,94 @@
     } catch (e) { return null; }
   }
 
+  // ----- 홈 "해야 할 일" 계산 -----
+  function dayDiff(fromYmd, toYmd) { // toYmd - fromYmd (일)
+    const p = (s) => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+    return Math.round((p(toYmd) - p(fromYmd)) / 86400000);
+  }
+  function todos(today) {
+    const t = today || todayYmd();
+    const settleApi = typeof root.settle === 'function' ? root : require('./settle.js');
+    const out = { unsettled: [], pending: [], prep: [], upcoming: [] };
+    list().forEach((a) => {
+      const d = dayDiff(t, a.date);
+      const s = a.settlement;
+      const hasSettle = !!(s && s.expenses.length);
+      if (d < 0 && d >= -30 && !hasSettle && !a.skipSettle) out.unsettled.push({ appt: a, ago: -d });
+      if (hasSettle) {
+        const r = settleApi.settle(s.people, s.expenses);
+        const left = settleApi.pendingTransfers(r.transfers, s.paid).length;
+        if (left > 0) out.pending.push({ appt: a, left });
+      }
+      if (d >= 0 && d <= 7 && a.items.length) {
+        const got = a.items.filter((x) => x.d).length;
+        if (got < a.items.length) out.prep.push({ appt: a, got, total: a.items.length, days: d });
+      }
+      if (d >= 0) out.upcoming.push({ appt: a, days: d });
+    });
+    out.unsettled.sort((x, y) => x.ago - y.ago); // 최근 것부터
+    return out;
+  }
+
+  // ----- 백업 / 복원 (파일 또는 글자). 읽을 때는 반드시 정리 함수로 검증 -----
+  const CUR_KEY = 'dutchpay-v1';
+  const HIS_KEY = 'dutchpay-history-v1';
+  function cleanHistory(h) {
+    if (!Array.isArray(h)) return [];
+    return h.slice(0, 30).map((r) => {
+      const s = cleanSettlement(r);
+      if (!s || !s.expenses.length) return null;
+      return {
+        id: Number.isFinite(r.id) ? r.id : Date.now(),
+        name: cleanText(r.name, 20) || '정산',
+        savedAt: Number.isFinite(r.savedAt) ? r.savedAt : Date.now(),
+        people: s.people, expenses: s.expenses, paid: s.paid,
+      };
+    }).filter(Boolean);
+  }
+  function readJson(key) { try { return JSON.parse(root.localStorage.getItem(key)); } catch (e) { return null; } }
+  function buildBackup() {
+    return JSON.stringify({
+      app: 'yaksok-ihu', v: 1, savedAt: Date.now(),
+      plans: items, current: readJson(CUR_KEY), history: readJson(HIS_KEY) || [],
+    });
+  }
+  // 글자 → { ok, plans, current, history } 또는 { ok:false, error }
+  function parseBackup(text) {
+    try {
+      if (typeof text !== 'string' || !text.trim()) return { ok: false, error: '백업 내용이 비어 있어요' };
+      if (text.length > 3000000) return { ok: false, error: '파일이 너무 커요' };
+      const o = JSON.parse(text);
+      if (!o || o.app !== 'yaksok-ihu' || o.v !== 1) return { ok: false, error: '이 앱의 백업 파일이 아니에요' };
+      const seen = {};
+      const plans = (Array.isArray(o.plans) ? o.plans : []).slice(0, 500).map(cleanAppt).filter((a) => a && !seen[a.id] && (seen[a.id] = true));
+      const c = o.current && typeof o.current === 'object' ? o.current : {};
+      const cs = cleanSettlement(c) || { people: [], expenses: [], paid: {} };
+      const current = { people: cs.people, expenses: cs.expenses, paid: cs.paid };
+      if (Number.isFinite(c.planId) && plans.some((a) => a.id === c.planId)) current.planId = c.planId;
+      return { ok: true, plans, current, history: cleanHistory(o.history) };
+    } catch (e) { return { ok: false, error: '백업 파일을 읽지 못했어요' }; }
+  }
+  function applyBackup(p) {
+    if (!p || !p.ok) return false;
+    const prev = [items, root.localStorage.getItem(CUR_KEY), root.localStorage.getItem(HIS_KEY)];
+    try {
+      items = p.plans.slice();
+      if (!persist()) throw new Error('save');
+      root.localStorage.setItem(CUR_KEY, JSON.stringify(p.current));
+      root.localStorage.setItem(HIS_KEY, JSON.stringify(p.history));
+      return true;
+    } catch (e) { // 저장 공간 부족 등: 원래대로 되돌림
+      items = prev[0];
+      try {
+        persist();
+        if (prev[1] !== null) root.localStorage.setItem(CUR_KEY, prev[1]);
+        if (prev[2] !== null) root.localStorage.setItem(HIS_KEY, prev[2]);
+      } catch (e2) {}
+      return false;
+    }
+  }
+
   // 입력창의 "우산, 돗자리" 글을 준비물 목록으로 (이미 체크한 항목은 체크 유지)
   function parseItems(text, prev) {
     const done = {};
@@ -179,7 +268,7 @@
   }
 
   const api = {
-    parseItems, mapLinks,
+    parseItems, mapLinks, todos, dayDiff, buildBackup, parseBackup, applyBackup,
     fmt, todayYmd, validYmd, labelDate, daysUntil,
     list, get, byDate, upcoming, add, update, remove, setSettlement,
     encodeShare, decodeShare, cleanAppt,

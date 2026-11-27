@@ -83,4 +83,63 @@ assert.strictEqual(S.decodeShare('A'.repeat(5000)), null);
 const evil = Buffer.from(JSON.stringify({ v: 1, t: '<img src=x onerror=alert(1)>', d: '2026-12-05', w: ['<b>'] })).toString('base64url');
 assert.strictEqual(S.decodeShare(evil).title, '<img src=x onerror=alert(1)>', '문자열로만 보관 (화면에서는 textContent로만 표시)');
 console.log('OK  공유 링크 (링크 길이 ' + code.length + '자)');
+// 홈 해야 할 일
+{
+  S._reset();
+  const T = '2026-12-01';
+  const mk = (title, date, extra) => S.add({ title, date, ...extra });
+  const old1 = mk('지난 모임', '2026-11-28');           // 정산 안 함 → 알림
+  const old2 = mk('옛날 모임', '2026-09-01');           // 30일 넘음 → 제외
+  const old3 = mk('정산 없음 모임', '2026-11-25');
+  S.update(old3.id, { skipSettle: true });
+  const old4 = mk('정산 중 모임', '2026-11-20', { people: ['나', '민수'] });
+  S.setSettlement(old4.id, { people: ['나', '민수'], expenses: [{ id: 1, title: '식비', payer: '나', amount: 30000, shares: ['나', '민수'] }] });
+  const soon = mk('소풍', '2026-12-03', { items: [{ t: '돗자리', d: true }, { t: '우산', d: false }] });
+  mk('먼 약속', '2026-12-25', { items: [{ t: '선물', d: false }] });
+  const td = S.todos(T);
+  assert.deepStrictEqual(td.unsettled.map((x) => x.appt.title), ['지난 모임', '정산 중 모임'].filter((n) => n === '지난 모임'), '정산 기록 없는 최근 약속만');
+  assert.strictEqual(td.unsettled[0].ago, 3);
+  assert.deepStrictEqual(td.pending.map((x) => [x.appt.title, x.left]), [['정산 중 모임', 1]]);
+  assert.deepStrictEqual(td.prep.map((x) => [x.appt.title, x.got, x.total, x.days]), [['소풍', 1, 2, 2]], '7일 안, 미완료만');
+  assert.deepStrictEqual(td.upcoming.map((x) => x.appt.title), ['소풍', '먼 약속']);
+  // 송금을 모두 체크하면 남은 송금 목록에서 빠짐
+  S.setSettlement(old4.id, { people: ['나', '민수'], expenses: S.get(old4.id).settlement.expenses, paid: { '민수>나:15000': true } });
+  assert.strictEqual(S.todos(T).pending.length, 0);
+  assert.strictEqual(S.dayDiff('2026-12-31', '2027-01-02'), 2);
+  console.log('OK  홈 해야 할 일');
+
+  // 백업 → 지우고 → 복원
+  mem['dutchpay-v1'] = JSON.stringify({ people: ['나', '민수'], expenses: [{ id: 1, title: '식비', payer: '나', amount: 30000, shares: ['나', '민수'] }], paid: {}, planId: old4.id });
+  mem['dutchpay-history-v1'] = JSON.stringify([{ id: 5, name: '11월 모임', savedAt: 1700000000000, people: ['나', '민수'], expenses: [{ id: 1, title: '식비', payer: '나', amount: 30000, shares: ['나', '민수'] }] }]);
+  const text = S.buildBackup();
+  const before = S.list().length;
+  S._reset();
+  delete mem['dutchpay-v1']; delete mem['dutchpay-history-v1'];
+  const p = S.parseBackup(text);
+  assert.ok(p.ok);
+  assert.strictEqual(p.plans.length, before);
+  assert.strictEqual(p.current.planId, old4.id, '연결된 약속 유지');
+  assert.strictEqual(p.history.length, 1);
+  assert.ok(S.applyBackup(p));
+  assert.strictEqual(S.list().length, before);
+  assert.strictEqual(JSON.parse(mem['dutchpay-history-v1'])[0].name, '11월 모임');
+  assert.strictEqual(S.get(old3.id).skipSettle, true, '정산 없음 표시 유지');
+
+  // 이상한/위험한 백업은 거절하거나 정리됨
+  assert.strictEqual(S.parseBackup('').ok, false);
+  assert.strictEqual(S.parseBackup('not json').ok, false);
+  assert.strictEqual(S.parseBackup('{"app":"other","v":1}').ok, false);
+  assert.strictEqual(S.parseBackup('x'.repeat(3000001)).ok, false);
+  const evil = S.parseBackup(JSON.stringify({ app: 'yaksok-ihu', v: 1,
+    plans: [{ id: 1, title: '<img onerror=x>', date: '2026-12-01' }, { id: 1, title: '중복 id', date: '2026-12-01' }, { title: '', date: 'bad' }, null, 7],
+    current: { planId: 999, people: 'x', expenses: 'y' }, history: 'zzz' }));
+  assert.ok(evil.ok);
+  assert.strictEqual(evil.plans.length, 1, '깨진 항목·중복 id 제거');
+  assert.strictEqual(evil.current.planId, undefined, '없는 약속 연결은 버림');
+  assert.deepStrictEqual(evil.history, []);
+  console.log('OK  백업·복원');
+  S._reset();
+  delete mem['dutchpay-v1']; delete mem['dutchpay-history-v1'];
+}
+
 console.log('저장소 테스트 통과');

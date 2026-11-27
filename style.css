@@ -197,6 +197,28 @@ button:focus-visible, .check:focus-within { outline: 3px solid rgba(47, 91, 255,
 .modal-btns .btn { flex: 1; }
 .modal-btns .ghost { background: #fff; color: var(--ink); }
 
+/* 홈: 해야 할 일 / 백업 */
+.todos { list-style: none; margin: 0; padding: 0; }
+.todo { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); }
+.todo:first-child { border-top: 0; }
+.todo-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.todo-info strong { font-size: .98rem; overflow-wrap: anywhere; }
+.todo-info small { color: var(--muted); font-size: .85rem; }
+.todo .btns { display: flex; gap: 6px; flex: none; }
+.todo.warn .todo-info strong::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: #FF8A3D; }
+.dd { flex: none; min-width: 52px; text-align: center; padding: 4px 8px; border-radius: 999px; background: var(--blue-soft); color: var(--blue); font-weight: 800; font-size: .85rem; }
+.sub-h { margin: 18px 0 4px; font-size: .9rem; color: var(--muted); font-weight: 700; }
+.bk-btns { display: flex; gap: 8px; margin: 10px 0 8px; }
+.bk-btns .btn { flex: 1; }
+.btn.ghost-b { background: var(--blue-soft); color: var(--blue); }
+.bk-restore { margin-top: 10px; }
+.bk-restore summary { cursor: pointer; padding: 10px 0; font-weight: 700; color: var(--blue); }
+textarea {
+  width: 100%; padding: 10px 14px; font-size: 16px; border: 1.5px solid var(--line); border-radius: 14px;
+  background: #fff; color: var(--ink); margin-top: 6px; font-family: inherit; resize: vertical;
+}
+input[type=file] { margin-top: 6px; width: 100%; font-size: .9rem; }
+
 /* 송금 체크 / 요청 문구 버튼 */
 .tact { display: flex; gap: 8px; }
 .tbtn {

@@ -38,6 +38,31 @@
           <small id="tileDutch"></small>
         </a>
       </div>
+
+      <section class="card" aria-labelledby="todoH">
+        <h2 id="todoH">해야 할 일</h2>
+        <ul id="todoList" class="todos"></ul>
+        <p id="todoEmpty" class="empty" hidden>지금 해야 할 일이 없어요. 잘하고 있어요!</p>
+        <h3 class="sub-h" id="upH">다가오는 약속</h3>
+        <ul id="upList" class="todos"></ul>
+        <p id="upEmpty" class="empty" hidden>다가오는 약속이 더 없어요.</p>
+      </section>
+
+      <section class="card" aria-labelledby="bkH">
+        <h2 id="bkH">백업 · 복원</h2>
+        <p class="hint tight">약속과 정산은 이 폰에만 저장돼요. 폰을 바꾸거나 브라우저 기록을 지우기 전에 백업해 두세요.</p>
+        <div class="bk-btns">
+          <button id="bkFile" class="btn" type="button">백업 파일 저장</button>
+          <button id="bkCopy" class="btn ghost-b" type="button">백업 글자 복사</button>
+        </div>
+        <details class="bk-restore">
+          <summary>백업에서 복원하기</summary>
+          <label>백업 파일 선택 <input id="bkPick" type="file" accept=".json,application/json,text/plain"></label>
+          <label>또는 복사해 둔 백업 글자 붙여넣기 <textarea id="bkText" rows="3" placeholder="여기에 붙여넣기" spellcheck="false"></textarea></label>
+          <button id="bkRestore" class="btn big" type="button">붙여넣은 글자로 복원</button>
+          <p class="hint tight">복원하면 지금 이 폰의 약속·정산이 백업 내용으로 바뀌어요.</p>
+        </details>
+      </section>
     </div>
 
     <!-- 더치페이 -->
