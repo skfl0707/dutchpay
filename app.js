@@ -341,6 +341,24 @@
     return c;
   }
 
+  // 이미지를 클립보드에 복사 (카톡 등에서 붙여넣기). 지원하지 않는 기기는 저장을 안내
+  $('imgCopyBtn').addEventListener('click', async () => {
+    if (!state.expenses.length) return toast('먼저 지출을 추가해 주세요');
+    if (!(navigator.clipboard && navigator.clipboard.write && window.ClipboardItem)) {
+      return toast('이 기기는 이미지 복사를 지원하지 않아요. "이미지 저장"을 이용해 주세요');
+    }
+    try {
+      // 눌린 직후에 약속(Promise)으로 넘겨야 아이폰에서도 허용돼요
+      const blobPromise = new Promise((res, rej) => {
+        try { drawResultImage().toBlob((b) => (b ? res(b) : rej(new Error('blob'))), 'image/png'); } catch (e) { rej(e); }
+      });
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blobPromise })]);
+      toast('이미지를 복사했어요. 채팅창에서 붙여넣어 보세요');
+    } catch (e) {
+      toast('이미지를 복사하지 못했어요. "이미지 저장"으로 사진첩에 저장해 보내 주세요');
+    }
+  });
+
   $('imgBtn').addEventListener('click', async () => {
     if (!state.expenses.length) return toast('먼저 지출을 추가해 주세요');
     let blob;
