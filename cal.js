@@ -159,6 +159,7 @@
       S.remove(a.id);
       renderMonth(); renderDay();
       toast('약속을 삭제했어요');
+      UI.Mascot.say('sad', '약속이 취소됐어요... 다음엔 꼭 만나요', 3800);
     };
     btns.append(settleBtn, shareBtn, editBtn, delBtn);
     li.append(btns);

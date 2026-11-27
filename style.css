@@ -466,7 +466,8 @@ a.ichip.near.on { background: var(--blue-soft); border-color: var(--blue); color
 .mascot[hidden] { display: none; }
 .mascot[data-state="idle"] [data-s]:not([data-s~="idle"]),
 .mascot[data-state="happy"] [data-s]:not([data-s~="happy"]),
-.mascot[data-state="thumb"] [data-s]:not([data-s~="thumb"]) { display: none; }
+.mascot[data-state="thumb"] [data-s]:not([data-s~="thumb"]),
+.mascot[data-state="sad"] [data-s]:not([data-s~="sad"]) { display: none; }
 .mascot .dog { transform-box: fill-box; transform-origin: 50% 100%; }
 .mascot[data-state="happy"] .dog { animation: pup-hop .5s ease-in-out 4; }
 .mascot[data-state="thumb"] .dog { animation: pup-bob .7s ease-in-out 3; }
@@ -493,3 +494,17 @@ a.ichip.near.on { background: var(--blue-soft); border-color: var(--blue); color
   content: ''; position: absolute; right: -7px; bottom: 14px; width: 12px; height: 12px;
   background: var(--card); border-right: 1.5px solid var(--line); border-top: 1.5px solid var(--line); transform: rotate(45deg);
 }
+
+/* 슬픈 강아지: 귀와 꼬리가 처지고, 눈물이 흐르고, 물방울이 떨어짐 */
+.mascot[data-state="sad"] .dog { animation: pup-sink 1.2s ease-out forwards; }
+.mascot[data-state="sad"] .tail { animation: none; transform: rotate(38deg); }
+.mascot .ear-l, .mascot .ear-r { transform-box: fill-box; transform-origin: 50% 0%; transition: transform .4s; }
+.mascot[data-state="sad"] .ear-l { transform: rotate(10deg); }
+.mascot[data-state="sad"] .ear-r { transform: rotate(-10deg); }
+.mascot .tear { animation: pup-tear 1.6s ease-in infinite; transform-box: fill-box; }
+.mascot .rain path { animation: pup-drop 1.5s ease-in infinite; opacity: 0; }
+.mascot .rain .f2 { animation-delay: .5s; }
+.mascot .rain .f3 { animation-delay: 1s; }
+@keyframes pup-sink { from { transform: translateY(0) scaleY(1); } to { transform: translateY(3px) scaleY(.96); } }
+@keyframes pup-tear { 0% { opacity: 0; transform: translateY(-2px); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(9px); } }
+@keyframes pup-drop { 0% { opacity: 0; transform: translateY(-4px); } 25% { opacity: .9; } 100% { opacity: 0; transform: translateY(14px); } }
